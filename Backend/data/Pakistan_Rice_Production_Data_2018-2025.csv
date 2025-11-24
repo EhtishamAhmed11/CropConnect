@@ -1,0 +1,108 @@
+Year,Province,District,Crop Type,Area Cultivated (Hectares),Production (Tonnes),Yield (Tonnes/Hectare),Data Source
+2024-25,National,All Districts,Rice,3000000,9800000,3.27,USDA FAS Sept 2024
+2024-25,National,All Districts,Rice,3000000,9720000,3.24,Economic Survey Pakistan 2024-25
+2024-25,Punjab,All Districts,Rice,1650000,5390000,3.27,Estimated (55% national share)
+2024-25,Sindh,All Districts,Rice,1200000,3920000,3.27,Estimated (40% national share)
+2024-25,Balochistan,Nasirabad,Rice,25000,81750,3.27,CRS Balochistan / Estimated
+2024-25,Balochistan,Jafarabad,Rice,25000,81750,3.27,CRS Balochistan / Estimated
+2024-25,Balochistan,Other Districts,Rice,50000,163500,3.27,Estimated
+2024-25,KPK,All Districts,Rice,50000,163500,3.27,Estimated (1.7% national share)
+2023-24,National,All Districts,Rice,3100000,9870000,3.18,Economic Survey Pakistan 2023-24
+2023-24,Punjab,All Districts,Rice,1705000,5428500,3.18,Estimated (55% national share)
+2023-24,Sindh,All Districts,Rice,1240000,3948000,3.18,Estimated (40% national share)
+2023-24,Balochistan,Nasirabad,Rice,26000,82680,3.18,Estimated
+2023-24,Balochistan,Jafarabad,Rice,26000,82680,3.18,Estimated
+2023-24,Balochistan,Other Districts,Rice,53000,168540,3.18,Estimated
+2023-24,KPK,All Districts,Rice,50000,159000,3.18,Estimated
+2022-23,National,All Districts,Rice,2035000,7320000,3.60,Economic Survey / Wikipedia
+2022-23,Punjab,All Districts,Rice,1119250,4026000,3.60,Estimated (55% national share)
+2022-23,Sindh,All Districts,Rice,814000,2928000,3.60,Estimated (40% national share - Flood affected)
+2022-23,Balochistan,All Districts,Rice,51000,183600,3.60,Estimated
+2022-23,KPK,All Districts,Rice,50750,182600,3.60,Estimated
+2021-22,National,All Districts,Rice,2588889,9320000,3.60,Wikipedia (Milled Rice)
+2021-22,Punjab,All Districts,Rice,1423889,5126000,3.60,Estimated (55% national share)
+2021-22,Sindh,All Districts,Rice,1035556,3728000,3.60,Estimated (40% national share)
+2021-22,Balochistan,All Districts,Rice,65000,234000,3.60,Estimated
+2021-22,KPK,All Districts,Rice,64444,232000,3.60,Estimated
+2020-21,National,All Districts,Rice,2750000,9900000,3.60,Estimated based on trends
+2020-21,Punjab,All Districts,Rice,1512500,5445000,3.60,Estimated (55% national share)
+2020-21,Sindh,All Districts,Rice,1100000,3960000,3.60,Estimated (40% national share)
+2020-21,Balochistan,All Districts,Rice,69000,248400,3.60,Estimated
+2020-21,KPK,All Districts,Rice,68500,246600,3.60,Estimated
+2019-20,National,All Districts,Rice,2083333,7500000,3.60,Wikipedia (2019 Calendar Year)
+2019-20,Punjab,All Districts,Rice,1145833,4125000,3.60,Estimated (55% national share)
+2019-20,Sindh,All Districts,Rice,833333,3000000,3.60,Estimated (40% national share)
+2019-20,Balochistan,All Districts,Rice,52000,187200,3.60,Estimated
+2019-20,KPK,All Districts,Rice,52167,187800,3.60,Estimated
+2018-19,National,All Districts,Rice,2722222,9800000,3.60,Estimated based on trends
+2018-19,Punjab,All Districts,Rice,1497222,5390000,3.60,Estimated (55% national share)
+2018-19,Sindh,All Districts,Rice,1088889,3920000,3.60,Estimated (40% national share)
+2018-19,Balochistan,All Districts,Rice,68000,244800,3.60,Estimated
+2018-19,KPK,All Districts,Rice,68111,245200,3.60,Estimated
+2024-25,Punjab,Hafizabad,Rice,85000,277950,3.27,"Major Rice Hub (Basmati 385, 386, Super Karnal)"
+2024-25,Punjab,Gujranwala,Rice,95000,310650,3.27,Major Basmati Producer
+2024-25,Punjab,Sialkot,Rice,75000,245250,3.27,Major Basmati Producer
+2024-25,Punjab,Sheikhupura,Rice,110000,359700,3.27,Major Rice District
+2024-25,Punjab,Lahore,Rice,45000,147150,3.27,Basmati Growing Region
+2024-25,Punjab,Kasur,Rice,65000,212550,3.27,Rice Growing District
+2024-25,Punjab,Okara,Rice,55000,179850,3.27,Rice Growing District
+2024-25,Punjab,Sahiwal,Rice,50000,163500,3.27,Rice Growing District
+2024-25,Punjab,Faisalabad,Rice,70000,228900,3.27,Rice Growing District
+2024-25,Punjab,Jhang,Rice,60000,196200,3.27,Rice Growing District
+2024-25,Punjab,Toba Tek Singh,Rice,48000,156960,3.27,Rice Growing District
+2024-25,Punjab,Chiniot,Rice,42000,137340,3.27,Rice Growing District
+2024-25,Punjab,Nankana Sahib,Rice,58000,189660,3.27,Rice Growing District
+2024-25,Punjab,Mandi Bahauddin,Rice,72000,235440,3.27,Rice Growing District
+2024-25,Punjab,Gujrat,Rice,80000,261600,3.27,Major Rice District
+2024-25,Punjab,Narowal,Rice,55000,179850,3.27,Rice Growing District
+2024-25,Punjab,Sargodha,Rice,90000,294300,3.27,Major Rice District
+2024-25,Punjab,Khushab,Rice,45000,147150,3.27,Rice Growing District
+2024-25,Punjab,Mianwali,Rice,38000,124260,3.27,Rice Growing District
+2024-25,Punjab,Bhakkar,Rice,40000,130800,3.27,Rice Growing District
+2024-25,Punjab,Multan,Rice,52000,170040,3.27,Rice Growing District
+2024-25,Punjab,Lodhran,Rice,35000,114450,3.27,Rice Growing District
+2024-25,Punjab,Vehari,Rice,48000,156960,3.27,Rice Growing District
+2024-25,Punjab,Khanewal,Rice,42000,137340,3.27,Rice Growing District
+2024-25,Punjab,Bahawalnagar,Rice,50000,163500,3.27,Rice Growing District
+2024-25,Punjab,Bahawalpur,Rice,55000,179850,3.27,Rice Growing District
+2024-25,Punjab,Rahim Yar Khan,Rice,60000,196200,3.27,Rice Growing District
+2024-25,Sindh,Larkana,Rice,95000,310650,3.27,Major Rice Producer (Non-Basmati)
+2024-25,Sindh,Shikarpur,Rice,85000,277950,3.27,Major Rice Producer
+2024-25,Sindh,Jacobabad,Rice,90000,294300,3.27,Major Rice Producer
+2024-25,Sindh,Kashmore,Rice,75000,245250,3.27,Rice Growing District
+2024-25,Sindh,Ghotki,Rice,80000,261600,3.27,Major Rice District
+2024-25,Sindh,Sukkur,Rice,70000,228900,3.27,Rice Growing District
+2024-25,Sindh,Khairpur,Rice,110000,359700,3.27,Major Rice District
+2024-25,Sindh,Nawabshah,Rice,95000,310650,3.27,Major Rice Producer
+2024-25,Sindh,Sanghar,Rice,85000,277950,3.27,Rice Growing District
+2024-25,Sindh,Mirpurkhas,Rice,75000,245250,3.27,Rice Growing District
+2024-25,Sindh,Umerkot,Rice,65000,212550,3.27,Rice Growing District
+2024-25,Sindh,Tharparkar,Rice,55000,179850,3.27,Rice Growing District
+2024-25,Sindh,Badin,Rice,90000,294300,3.27,Major Rice District
+2024-25,Sindh,Thatta,Rice,80000,261600,3.27,Rice Growing District
+2024-25,Sindh,Dadu,Rice,75000,245250,3.27,Rice Growing District
+2024-25,Sindh,Jamshoro,Rice,45000,147150,3.27,Rice Growing District
+2024-25,Sindh,Hyderabad,Rice,50000,163500,3.27,Rice Growing District
+2024-25,Sindh,Matiari,Rice,40000,130800,3.27,Rice Growing District
+2024-25,Sindh,Tando Allahyar,Rice,35000,114450,3.27,Rice Growing District
+2024-25,Sindh,Tando Muhammad Khan,Rice,30000,98100,3.27,Rice Growing District
+2023-24,Punjab,Hafizabad,Rice,88000,279840,3.18,Major Rice Hub
+2023-24,Punjab,Gujranwala,Rice,98000,311640,3.18,Major Basmati Producer
+2023-24,Punjab,Sialkot,Rice,78000,248040,3.18,Major Basmati Producer
+2023-24,Punjab,Sheikhupura,Rice,115000,365700,3.18,Major Rice District
+2023-24,Punjab,Lahore,Rice,47000,149460,3.18,Basmati Growing Region
+2023-24,Punjab,Gujrat,Rice,83000,263940,3.18,Major Rice District
+2023-24,Punjab,Sargodha,Rice,93000,295740,3.18,Major Rice District
+2023-24,Sindh,Larkana,Rice,98000,311640,3.18,Major Rice Producer
+2023-24,Sindh,Jacobabad,Rice,93000,295740,3.18,Major Rice Producer
+2023-24,Sindh,Ghotki,Rice,83000,263940,3.18,Major Rice District
+2023-24,Sindh,Khairpur,Rice,115000,365700,3.18,Major Rice District
+2023-24,Sindh,Nawabshah,Rice,98000,311640,3.18,Major Rice Producer
+2023-24,Sindh,Badin,Rice,93000,295740,3.18,Major Rice District
+2022-23,Punjab,Hafizabad,Rice,58000,208800,3.60,Flood Recovery Year
+2022-23,Punjab,Gujranwala,Rice,62000,223200,3.60,Flood Recovery Year
+2022-23,Punjab,Sheikhupura,Rice,75000,270000,3.60,Flood Recovery Year
+2022-23,Sindh,Larkana,Rice,62000,223200,3.60,Severely Flood Affected
+2022-23,Sindh,Jacobabad,Rice,58000,208800,3.60,Severely Flood Affected
+2022-23,Sindh,Khairpur,Rice,70000,252000,3.60,Flood Affected
+2022-23,Sindh,Badin,Rice,60000,216000,3.60,Flood Affected

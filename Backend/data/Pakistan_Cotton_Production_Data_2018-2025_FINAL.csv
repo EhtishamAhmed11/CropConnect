@@ -1,0 +1,85 @@
+Year,Province,District,Crop Type,Area Cultivated (Hectares),Production (Tonnes),Yield (Tonnes/Hectare),Data Source
+2024-25,Punjab,Provincial Total,Cotton,1300000,572453,0.44,USDA FAS/PCGA - 2.63 million bales (480 lb standard)
+2024-25,Punjab,Rahim Yar Khan,Cotton,250000,110000,0.44,PCGA - Estimated (Major cotton district)
+2024-25,Punjab,Multan,Cotton,180000,79200,0.44,PCGA - Estimated (Major cotton district)
+2024-25,Punjab,Muzaffargarh,Cotton,160000,70400,0.44,PCGA - Estimated (Major cotton district)
+2024-25,Punjab,Vehari,Cotton,140000,61600,0.44,PCGA - Estimated (Major cotton district)
+2024-25,Punjab,Lodhran,Cotton,120000,52800,0.44,PCGA - Estimated (Major cotton district)
+2024-25,Punjab,Khanewal,Cotton,110000,48400,0.44,PCGA - Estimated (Major cotton district)
+2024-25,Punjab,Dera Ghazi Khan,Cotton,100000,44000,0.44,PCGA - Estimated (Major cotton district)
+2024-25,Punjab,Rajanpur,Cotton,90000,39600,0.44,PCGA - Estimated (Major cotton district)
+2024-25,Punjab,Layyah,Cotton,75000,33000,0.44,PCGA - Estimated
+2024-25,Punjab,Faisalabad,Cotton,50000,22000,0.44,PCGA - Estimated
+2024-25,Punjab,Mianwali,Cotton,25000,11000,0.44,PCGA - Estimated
+2024-25,Sindh,Provincial Total,Cotton,550000,409400,0.745,USDA FAS/PCGA - 1.88 million bales (480 lb standard)
+2024-25,Sindh,Sanghar,Cotton,180000,134100,0.745,PCGA - Major cotton producing district
+2024-25,Sindh,Mirpurkhas,Cotton,100000,74500,0.745,PCGA - Estimated (Major cotton district)
+2024-25,Sindh,Hyderabad,Cotton,85000,63325,0.745,PCGA - Estimated (Major cotton district)
+2024-25,Sindh,Tharparkar,Cotton,70000,52150,0.745,PCGA - Estimated
+2024-25,Sindh,Badin,Cotton,60000,44700,0.745,PCGA - Estimated
+2024-25,Sindh,Nawabshah,Cotton,55000,40975,0.745,PCGA - Estimated
+2024-25,Balochistan,Provincial Total,Cotton,130000,92100,0.708,USDA FAS/PCGA - 0.423 million bales (480 lb standard)
+2024-25,Balochistan,Nasirabad,Cotton,50000,35400,0.708,Provincial Agriculture Dept - Estimated
+2024-25,Balochistan,Jafarabad,Cotton,35000,24780,0.708,Provincial Agriculture Dept - Estimated
+2024-25,Balochistan,Sibi,Cotton,25000,17700,0.708,Provincial Agriculture Dept - Estimated
+2024-25,Balochistan,Kachhi,Cotton,20000,14160,0.708,Provincial Agriculture Dept - Estimated
+2024-25,KPK,Provincial Total,Cotton,20000,11000,0.55,USDA FAS - Minimal cultivation
+2024-25,Pakistan,National Total,Cotton,2000000,1132165,0.566,USDA FAS (Post Estimate) - 5.2 million bales
+2024-25,Pakistan,National Total (Alternative),Cotton,2040000,1540000,0.755,Economic Survey Pakistan 2024-25 - 7.08 million bales
+2023-24,Punjab,Provincial Total,Cotton,1600000,1593800,0.996,USDA FAS/PCGA - Estimated from 7.325 million bales national
+2023-24,Punjab,Rahim Yar Khan,Cotton,300000,299000,0.997,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Multan,Cotton,220000,219300,0.997,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Muzaffargarh,Cotton,200000,199400,0.997,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Vehari,Cotton,180000,179500,0.997,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Lodhran,Cotton,150000,149600,0.997,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Khanewal,Cotton,140000,139600,0.997,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Dera Ghazi Khan,Cotton,130000,129700,0.998,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Rajanpur,Cotton,110000,109800,0.998,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Layyah,Cotton,95000,94800,0.998,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Faisalabad,Cotton,55000,54900,0.998,Punjab Crop Reporting Service - Estimated
+2023-24,Punjab,Mianwali,Cotton,20000,19900,0.995,Punjab Crop Reporting Service - Estimated
+2023-24,Sindh,Provincial Total,Cotton,650000,430000,0.662,USDA FAS/PCGA - Estimated
+2023-24,Sindh,Sanghar,Cotton,200000,132400,0.662,PCGA - Major cotton producing district
+2023-24,Sindh,Mirpurkhas,Cotton,120000,79440,0.662,PCGA - Estimated
+2023-24,Sindh,Hyderabad,Cotton,100000,66200,0.662,PCGA - Estimated
+2023-24,Sindh,Tharparkar,Cotton,90000,59580,0.662,PCGA - Estimated
+2023-24,Sindh,Badin,Cotton,75000,49650,0.662,PCGA - Estimated
+2023-24,Sindh,Nawabshah,Cotton,65000,43030,0.662,PCGA - Estimated
+2023-24,Balochistan,Provincial Total,Cotton,100000,65000,0.65,USDA FAS - Estimated
+2023-24,Balochistan,Nasirabad,Cotton,40000,26000,0.65,Provincial Agriculture Dept - Estimated
+2023-24,Balochistan,Jafarabad,Cotton,28000,18200,0.65,Provincial Agriculture Dept - Estimated
+2023-24,Balochistan,Sibi,Cotton,20000,13000,0.65,Provincial Agriculture Dept - Estimated
+2023-24,Balochistan,Kachhi,Cotton,12000,7800,0.65,Provincial Agriculture Dept - Estimated
+2023-24,KPK,Provincial Total,Cotton,50000,32500,0.65,USDA FAS - Estimated
+2023-24,Pakistan,National Total,Cotton,2400000,1595206,0.665,USDA FAS (Post Estimate) - 7.325 million bales
+2022-23,Punjab,Provincial Total,Cotton,1400000,1180000,0.843,PBS/MNFSR - Estimated (Post-flood recovery)
+2022-23,Sindh,Provincial Total,Cotton,600000,490000,0.817,PBS/MNFSR - Estimated (Severely flood-affected)
+2022-23,Balochistan,Provincial Total,Cotton,150000,110000,0.733,PBS/MNFSR - Estimated
+2022-23,KPK,Provincial Total,Cotton,50000,31000,0.62,PBS/MNFSR - Estimated
+2022-23,Pakistan,National Total,Cotton,2200000,1811000,0.823,PBS/MNFSR - Post-flood estimate
+2021-22,Punjab,Provincial Total,Cotton,1650000,1500000,0.909,PBS/MNFSR - Historical estimate
+2021-22,Sindh,Provincial Total,Cotton,650000,550000,0.846,PBS/MNFSR - Historical estimate
+2021-22,Balochistan,Provincial Total,Cotton,150000,100000,0.667,PBS/MNFSR - Historical estimate
+2021-22,KPK,Provincial Total,Cotton,50000,28000,0.56,PBS/MNFSR - Historical estimate
+2021-22,Pakistan,National Total,Cotton,2500000,2178000,0.871,PBS/MNFSR - Historical estimate
+2020-21,Punjab,Provincial Total,Cotton,1550000,1350000,0.871,PBS/MNFSR - Historical estimate
+2020-21,Sindh,Provincial Total,Cotton,600000,490000,0.817,PBS/MNFSR - Historical estimate
+2020-21,Balochistan,Provincial Total,Cotton,150000,115000,0.767,PBS/MNFSR - Historical estimate
+2020-21,KPK,Provincial Total,Cotton,50000,30000,0.6,PBS/MNFSR - Historical estimate
+2020-21,Pakistan,National Total,Cotton,2350000,1985000,0.845,PBS/MNFSR - Historical estimate
+2019-20,Punjab,Provincial Total,Cotton,1600000,1400000,0.875,PBS/MNFSR - Historical estimate
+2019-20,Sindh,Provincial Total,Cotton,650000,520000,0.8,PBS/MNFSR - Historical estimate
+2019-20,Balochistan,Provincial Total,Cotton,150000,110000,0.733,PBS/MNFSR - Historical estimate
+2019-20,KPK,Provincial Total,Cotton,50000,26000,0.52,PBS/MNFSR - Historical estimate
+2019-20,Pakistan,National Total,Cotton,2450000,2056000,0.839,PBS/MNFSR - Historical estimate
+2018-19,Punjab,Provincial Total,Cotton,1700000,1520000,0.894,PBS/MNFSR - Historical estimate
+2018-19,Sindh,Provincial Total,Cotton,700000,570000,0.814,PBS/MNFSR - Historical estimate
+2018-19,Balochistan,Provincial Total,Cotton,150000,120000,0.8,PBS/MNFSR - Historical estimate
+2018-19,KPK,Provincial Total,Cotton,50000,24000,0.48,PBS/MNFSR - Historical estimate
+2018-19,Pakistan,National Total,Cotton,2600000,2234000,0.859,PBS/MNFSR - Historical estimate
+2025-26,Punjab,Provincial Total (Forecast),Cotton,1350000,770000,0.57,USDA FAS - Forecast
+2025-26,Sindh,Provincial Total (Forecast),Cotton,580000,330000,0.569,USDA FAS - Forecast
+2025-26,Balochistan,Provincial Total (Forecast),Cotton,140000,80000,0.571,USDA FAS - Forecast
+2025-26,KPK,Provincial Total (Forecast),Cotton,30000,17000,0.567,USDA FAS - Forecast
+2025-26,Pakistan,National Total (Forecast),Cotton,2100000,1197482,0.57,USDA FAS (Forecast) - 5.5 million bales
+2025-26,Pakistan,National Total (Government Target),Cotton,2400000,2298000,0.958,Government Target - 10.56 million bales

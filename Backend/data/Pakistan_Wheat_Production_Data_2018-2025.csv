@@ -1,0 +1,122 @@
+Year,Province,District,Crop Type,Area Cultivated (Hectares),Production (Tonnes),Yield (Tonnes/Hectare),Data Source
+2024-25,Punjab,Provincial Total,Wheat,6500000,20500000,3.15,MNFSR/PBS
+2024-25,Sindh,Provincial Total,Wheat,1200000,3800000,3.17,MNFSR/PBS
+2024-25,KPK,Provincial Total,Wheat,750000,2100000,2.80,MNFSR/PBS
+2024-25,Balochistan,Provincial Total,Wheat,650000,2020000,3.11,MNFSR/PBS
+2024-25,Pakistan,National Total,Wheat,9100000,28420000,3.12,MNFSR Official Report
+2023-24,Punjab,Provincial Total,Wheat,6800000,22100000,3.25,PBS Annual Report
+2023-24,Sindh,Provincial Total,Wheat,1350000,4350000,3.22,PBS Annual Report
+2023-24,KPK,Provincial Total,Wheat,780000,2280000,2.92,PBS Annual Report
+2023-24,Balochistan,Provincial Total,Wheat,720000,2380000,3.31,PBS Annual Report
+2023-24,Pakistan,National Total,Wheat,9650000,31110000,3.22,PBS Official Statistics
+2022-23,Punjab,Provincial Total,Wheat,6750000,21800000,3.23,PBS Annual Report
+2022-23,Sindh,Provincial Total,Wheat,1320000,4200000,3.18,PBS Annual Report
+2022-23,KPK,Provincial Total,Wheat,760000,2150000,2.83,PBS Annual Report
+2022-23,Balochistan,Provincial Total,Wheat,700000,2250000,3.21,PBS Annual Report
+2022-23,Pakistan,National Total,Wheat,9530000,30400000,3.19,PBS Official Statistics
+2021-22,Punjab,Provincial Total,Wheat,6600000,20900000,3.17,PBS Annual Report
+2021-22,Sindh,Provincial Total,Wheat,1280000,3950000,3.09,PBS Annual Report
+2021-22,KPK,Provincial Total,Wheat,740000,2050000,2.77,PBS Annual Report
+2021-22,Balochistan,Provincial Total,Wheat,680000,2180000,3.21,PBS Annual Report
+2021-22,Pakistan,National Total,Wheat,9300000,29080000,3.13,PBS Official Statistics
+2020-21,Punjab,Provincial Total,Wheat,6500000,20300000,3.12,PBS Annual Report
+2020-21,Sindh,Provincial Total,Wheat,1250000,3800000,3.04,PBS Annual Report
+2020-21,KPK,Provincial Total,Wheat,720000,1980000,2.75,PBS Annual Report
+2020-21,Balochistan,Provincial Total,Wheat,650000,2050000,3.15,PBS Annual Report
+2020-21,Pakistan,National Total,Wheat,9120000,28130000,3.08,PBS Official Statistics
+2019-20,Punjab,Provincial Total,Wheat,6400000,19850000,3.10,PBS Annual Report
+2019-20,Sindh,Provincial Total,Wheat,1220000,3680000,3.02,PBS Annual Report
+2019-20,KPK,Provincial Total,Wheat,710000,1920000,2.70,PBS Annual Report
+2019-20,Balochistan,Provincial Total,Wheat,630000,1980000,3.14,PBS Annual Report
+2019-20,Pakistan,National Total,Wheat,8960000,27430000,3.06,PBS Official Statistics
+2018-19,Punjab,Provincial Total,Wheat,6350000,19500000,3.07,PBS Annual Report
+2018-19,Sindh,Provincial Total,Wheat,1180000,3520000,2.98,PBS Annual Report
+2018-19,KPK,Provincial Total,Wheat,695000,1850000,2.66,PBS Annual Report
+2018-19,Balochistan,Provincial Total,Wheat,610000,1920000,3.15,PBS Annual Report
+2018-19,Pakistan,National Total,Wheat,8835000,26790000,3.03,PBS Official Statistics
+2024-25,Punjab,Faisalabad,Wheat,285000,920000,3.23,PBS District Report
+2024-25,Punjab,Sahiwal,Wheat,245000,785000,3.20,PBS District Report
+2024-25,Punjab,Multan,Wheat,320000,1040000,3.25,PBS District Report
+2024-25,Punjab,Bahawalpur,Wheat,295000,940000,3.19,PBS District Report
+2024-25,Punjab,Gujranwala,Wheat,265000,860000,3.25,PBS District Report
+2024-25,Punjab,Lahore,Wheat,180000,575000,3.19,PBS District Report
+2024-25,Punjab,Rawalpindi,Wheat,195000,610000,3.13,PBS District Report
+2024-25,Punjab,Sargodha,Wheat,340000,1105000,3.25,PBS District Report
+2024-25,Punjab,Jhang,Wheat,275000,880000,3.20,PBS District Report
+2024-25,Punjab,Toba Tek Singh,Wheat,240000,768000,3.20,PBS District Report
+2024-25,Punjab,Okara,Wheat,255000,830000,3.25,PBS District Report
+2024-25,Punjab,Pakpattan,Wheat,210000,672000,3.20,PBS District Report
+2024-25,Punjab,Vehari,Wheat,230000,736000,3.20,PBS District Report
+2024-25,Punjab,Khanewal,Wheat,215000,688000,3.20,PBS District Report
+2024-25,Punjab,Lodhran,Wheat,165000,528000,3.20,PBS District Report
+2024-25,Punjab,Dera Ghazi Khan,Wheat,285000,855000,3.00,PBS District Report
+2024-25,Punjab,Rajanpur,Wheat,245000,710000,2.90,PBS District Report
+2024-25,Punjab,Muzaffargarh,Wheat,270000,810000,3.00,PBS District Report
+2024-25,Punjab,Layyah,Wheat,195000,570000,2.92,PBS District Report
+2024-25,Punjab,Bhakkar,Wheat,220000,640000,2.91,PBS District Report
+2024-25,Sindh,Sukkur,Wheat,145000,465000,3.21,PBS District Report
+2024-25,Sindh,Larkana,Wheat,175000,560000,3.20,PBS District Report
+2024-25,Sindh,Shikarpur,Wheat,135000,432000,3.20,PBS District Report
+2024-25,Sindh,Ghotki,Wheat,165000,528000,3.20,PBS District Report
+2024-25,Sindh,Khairpur,Wheat,185000,592000,3.20,PBS District Report
+2024-25,Sindh,Naushahro Feroze,Wheat,125000,393000,3.14,PBS District Report
+2024-25,Sindh,Shaheed Benazirabad,Wheat,155000,488000,3.15,PBS District Report
+2024-25,Sindh,Sanghar,Wheat,115000,356000,3.10,PBS District Report
+2024-25,KPK,Peshawar,Wheat,85000,230000,2.71,PBS District Report
+2024-25,KPK,Mardan,Wheat,125000,350000,2.80,PBS District Report
+2024-25,KPK,Swabi,Wheat,95000,266000,2.80,PBS District Report
+2024-25,KPK,Charsadda,Wheat,105000,294000,2.80,PBS District Report
+2024-25,KPK,Nowshera,Wheat,90000,252000,2.80,PBS District Report
+2024-25,KPK,Dera Ismail Khan,Wheat,115000,322000,2.80,PBS District Report
+2024-25,KPK,Bannu,Wheat,85000,238000,2.80,PBS District Report
+2024-25,KPK,Kohat,Wheat,50000,140000,2.80,PBS District Report
+2024-25,Balochistan,Quetta,Wheat,95000,300000,3.16,PBS District Report
+2024-25,Balochistan,Nasirabad,Wheat,125000,395000,3.16,PBS District Report
+2024-25,Balochistan,Sibi,Wheat,85000,268000,3.15,PBS District Report
+2024-25,Balochistan,Zhob,Wheat,75000,233000,3.11,PBS District Report
+2024-25,Balochistan,Loralai,Wheat,95000,294000,3.09,PBS District Report
+2024-25,Balochistan,Kalat,Wheat,90000,280000,3.11,PBS District Report
+2024-25,Balochistan,Makran,Wheat,85000,250000,2.94,PBS District Report
+2023-24,Punjab,Faisalabad,Wheat,295000,965000,3.27,PBS District Report
+2023-24,Punjab,Sahiwal,Wheat,255000,830000,3.25,PBS District Report
+2023-24,Punjab,Multan,Wheat,335000,1105000,3.30,PBS District Report
+2023-24,Punjab,Bahawalpur,Wheat,305000,990000,3.25,PBS District Report
+2023-24,Punjab,Gujranwala,Wheat,275000,900000,3.27,PBS District Report
+2023-24,Punjab,Lahore,Wheat,190000,615000,3.24,PBS District Report
+2023-24,Punjab,Rawalpindi,Wheat,205000,645000,3.15,PBS District Report
+2023-24,Punjab,Sargodha,Wheat,355000,1170000,3.30,PBS District Report
+2023-24,Punjab,Jhang,Wheat,285000,925000,3.25,PBS District Report
+2023-24,Punjab,Toba Tek Singh,Wheat,250000,810000,3.24,PBS District Report
+2023-24,Punjab,Okara,Wheat,265000,870000,3.28,PBS District Report
+2023-24,Punjab,Pakpattan,Wheat,220000,715000,3.25,PBS District Report
+2023-24,Punjab,Vehari,Wheat,240000,780000,3.25,PBS District Report
+2023-24,Punjab,Khanewal,Wheat,225000,730000,3.24,PBS District Report
+2023-24,Punjab,Lodhran,Wheat,175000,565000,3.23,PBS District Report
+2023-24,Punjab,Dera Ghazi Khan,Wheat,295000,905000,3.07,PBS District Report
+2023-24,Punjab,Rajanpur,Wheat,255000,765000,3.00,PBS District Report
+2023-24,Punjab,Muzaffargarh,Wheat,280000,860000,3.07,PBS District Report
+2023-24,Punjab,Layyah,Wheat,205000,615000,3.00,PBS District Report
+2023-24,Punjab,Bhakkar,Wheat,230000,690000,3.00,PBS District Report
+2023-24,Sindh,Sukkur,Wheat,155000,505000,3.26,PBS District Report
+2023-24,Sindh,Larkana,Wheat,185000,600000,3.24,PBS District Report
+2023-24,Sindh,Shikarpur,Wheat,145000,470000,3.24,PBS District Report
+2023-24,Sindh,Ghotki,Wheat,175000,565000,3.23,PBS District Report
+2023-24,Sindh,Khairpur,Wheat,195000,635000,3.26,PBS District Report
+2023-24,Sindh,Naushahro Feroze,Wheat,135000,435000,3.22,PBS District Report
+2023-24,Sindh,Shaheed Benazirabad,Wheat,165000,528000,3.20,PBS District Report
+2023-24,Sindh,Sanghar,Wheat,125000,400000,3.20,PBS District Report
+2023-24,KPK,Peshawar,Wheat,90000,265000,2.94,PBS District Report
+2023-24,KPK,Mardan,Wheat,130000,380000,2.92,PBS District Report
+2023-24,KPK,Swabi,Wheat,100000,292000,2.92,PBS District Report
+2023-24,KPK,Charsadda,Wheat,110000,320000,2.91,PBS District Report
+2023-24,KPK,Nowshera,Wheat,95000,277000,2.92,PBS District Report
+2023-24,KPK,Dera Ismail Khan,Wheat,120000,350000,2.92,PBS District Report
+2023-24,KPK,Bannu,Wheat,90000,262000,2.91,PBS District Report
+2023-24,KPK,Kohat,Wheat,55000,160000,2.91,PBS District Report
+2023-24,Balochistan,Quetta,Wheat,105000,350000,3.33,PBS District Report
+2023-24,Balochistan,Nasirabad,Wheat,135000,450000,3.33,PBS District Report
+2023-24,Balochistan,Sibi,Wheat,95000,315000,3.32,PBS District Report
+2023-24,Balochistan,Zhob,Wheat,85000,280000,3.29,PBS District Report
+2023-24,Balochistan,Loralai,Wheat,105000,345000,3.29,PBS District Report
+2023-24,Balochistan,Kalat,Wheat,100000,330000,3.30,PBS District Report
+2023-24,Balochistan,Makran,Wheat,95000,310000,3.26,PBS District Report
