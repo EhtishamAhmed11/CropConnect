@@ -1,3 +1,4 @@
+import cache from "../services/cache.service.js";
 import ProductionData from "../models/productionData.model.js";
 import Province from "../models/province.model.js";
 import District from "../models/district.model.js";
@@ -63,6 +64,13 @@ export const getProductionData = async (req, res, next) => {
       sortOrder = "desc",
     } = req.query;
 
+    // Cache check
+    const cacheKey = cache.generateKey("production_data", { year, crop, province, district, level, page, limit, sortBy, sortOrder });
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.paginated(res, cachedData.data, page, limit, cachedData.total, "Production data retrieved from cache");
+    }
+
     const query = {};
 
     if (year) query.year = year;
@@ -87,6 +95,9 @@ export const getProductionData = async (req, res, next) => {
         .lean(),
       ProductionData.countDocuments(query),
     ]);
+
+    // Store in cache
+    cache.set(cacheKey, { data, total });
 
     return ApiResponse.paginated(
       res,
@@ -158,6 +169,13 @@ export const getProductionSummary = async (req, res, next) => {
       }
     }
 
+    // Cache check
+    const cacheKey = cache.generateKey("production_summary", matchStage);
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.success(res, cachedData, "Production summary retrieved from cache");
+    }
+
     const summary = await ProductionData.aggregate([
       { $match: matchStage },
       {
@@ -188,6 +206,9 @@ export const getProductionSummary = async (req, res, next) => {
     // Remove _id field
     delete result._id;
 
+    // Store in cache
+    cache.set(cacheKey, result);
+
     return ApiResponse.success(
       res,
       result,
@@ -197,13 +218,6 @@ export const getProductionSummary = async (req, res, next) => {
     next(error);
   }
 };
-/**
- * @desc    Get production trends over time
- * @route   GET /api/production/trends
- * @access  Public
- */
-import cache from "../services/cache.service.js";
-
 /**
  * @desc    Get production trends over time
  * @route   GET /api/production/trends
@@ -296,7 +310,6 @@ export const getProductionTrends = async (req, res, next) => {
     });
 
     // Store in cache
-    const cacheKey = cache.generateKey("trends", { crop, province, district, level });
     cache.set(cacheKey, trendsWithGrowth);
 
     return ApiResponse.success(
@@ -322,6 +335,13 @@ export const getProductionByCrop = async (req, res, next) => {
     if (year) matchStage.year = year;
     if (province) matchStage.provinceCode = province.toUpperCase();
 
+    // Cache check
+    const cacheKey = cache.generateKey("production_by_crop", { year, province });
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.success(res, cachedData, "Production by crop retrieved from cache");
+    }
+
     const byCrop = await ProductionData.aggregate([
       { $match: matchStage },
       {
@@ -346,6 +366,9 @@ export const getProductionByCrop = async (req, res, next) => {
       },
     ]);
 
+    // Store in cache
+    cache.set(cacheKey, byCrop);
+
     return ApiResponse.success(
       res,
       byCrop,
@@ -367,6 +390,13 @@ export const getProductionByProvince = async (req, res, next) => {
     const matchStage = { level: "provincial" };
     if (year) matchStage.year = year;
     if (crop) matchStage.cropCode = crop.toUpperCase();
+
+    // Cache check
+    const cacheKey = cache.generateKey("production_by_province", { year, crop });
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.success(res, cachedData, "Production by province retrieved from cache");
+    }
 
     const byProvince = await ProductionData.aggregate([
       { $match: matchStage },
@@ -412,6 +442,9 @@ export const getProductionByProvince = async (req, res, next) => {
       sharePercentage: ((item.production / totalProduction) * 100).toFixed(2),
     }));
 
+    // Store in cache
+    cache.set(cacheKey, withShare);
+
     return ApiResponse.success(
       res,
       withShare,
@@ -435,6 +468,13 @@ export const getTopDistricts = async (req, res, next) => {
     if (year) matchStage.year = year;
     if (crop) matchStage.cropCode = crop.toUpperCase();
     if (province) matchStage.provinceCode = province.toUpperCase();
+
+    // Cache check
+    const cacheKey = cache.generateKey("top_districts", { year, crop, province, limit });
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.success(res, cachedData, "Top districts retrieved from cache");
+    }
 
     const topDistricts = await ProductionData.aggregate([
       { $match: matchStage },
@@ -480,6 +520,9 @@ export const getTopDistricts = async (req, res, next) => {
         },
       },
     ]);
+
+    // Store in cache
+    cache.set(cacheKey, topDistricts);
 
     return ApiResponse.success(
       res,

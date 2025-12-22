@@ -7,6 +7,7 @@ import District from "../models/district.model.js";
 import CropType from "../models/cropType.model.js";
 import Alert from "../models/alerts.model.js";
 import ApiResponse from "../utils/apiResponse.js";
+import cache from "../services/cache.service.js";
 import {
   calculateSurplusDeficit,
   calculateConsumption,
@@ -268,14 +269,12 @@ export const getSurplusDeficitRecords = async (req, res, next) => {
       limit = 50,
     } = req.query;
 
-    // Build query
-    const query = {};
-    if (year) query.year = year;
-    if (crop) query.cropCode = crop.toUpperCase();
-    if (province) query.provinceCode = province.toUpperCase();
-    if (district) query.districtCode = district.toUpperCase();
-    if (status) query.status = status;
-    if (severity) query.severity = severity;
+    // Cache check
+    const cacheKey = cache.generateKey("sd_records", { year, crop, province, district, status, severity, page, limit });
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.paginated(res, cachedData.records, page, limit, cachedData.total, "Surplus/deficit records retrieved from cache");
+    }
 
     const skip = (page - 1) * limit;
 
@@ -290,6 +289,9 @@ export const getSurplusDeficitRecords = async (req, res, next) => {
         .lean(),
       SurplusDeficit.countDocuments(query),
     ]);
+
+    // Store in cache
+    cache.set(cacheKey, { records, total });
 
     return ApiResponse.paginated(
       res,
@@ -316,6 +318,13 @@ export const getSurplusDeficitSummary = async (req, res, next) => {
     const matchStage = {};
     if (year) matchStage.year = year;
     if (crop) matchStage.cropCode = crop.toUpperCase();
+
+    // Cache check
+    const cacheKey = cache.generateKey("sd_summary", { year, crop });
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.success(res, cachedData, "Surplus/deficit summary retrieved from cache");
+    }
 
     const summary = await SurplusDeficit.aggregate([
       { $match: matchStage },
@@ -357,20 +366,25 @@ export const getSurplusDeficitSummary = async (req, res, next) => {
       statusSummary[item._id] = item.count;
     });
 
+    const result = {
+      statusBreakdown: statusSummary,
+      severityBreakdown: {
+        critical: criticalDeficits,
+        moderate: moderateDeficits,
+      },
+      requiresIntervention,
+      filters: {
+        year: year || "all",
+        crop: crop || "all",
+      },
+    };
+
+    // Store in cache
+    cache.set(cacheKey, result);
+
     return ApiResponse.success(
       res,
-      {
-        statusBreakdown: statusSummary,
-        severityBreakdown: {
-          critical: criticalDeficits,
-          moderate: moderateDeficits,
-        },
-        requiresIntervention,
-        filters: {
-          year: year || "all",
-          crop: crop || "all",
-        },
-      },
+      result,
       "Surplus/deficit summary retrieved successfully"
     );
   } catch (error) {

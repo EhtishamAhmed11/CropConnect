@@ -13,7 +13,7 @@ class CacheService {
     set(key, value, ttl = this.ttl) {
         const expiry = Date.now() + ttl;
         this.cache.set(key, { value, expiry });
-        logger.debug(`Cache set for key: ${key}, expires in ${ttl / 1000}s`);
+        logger.info(`Cache set for key: ${key}, expires in ${ttl / 1000}s`);
     }
 
     get(key) {
@@ -22,11 +22,11 @@ class CacheService {
 
         if (Date.now() > entry.expiry) {
             this.cache.delete(key);
-            logger.debug(`Cache expired for key: ${key}`);
+            logger.info(`Cache expired for key: ${key}`);
             return null;
         }
 
-        logger.debug(`Cache hit for key: ${key}`);
+        logger.info(`Cache hit for key: ${key}`);
         return entry.value;
     }
 

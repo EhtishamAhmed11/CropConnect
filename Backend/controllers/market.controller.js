@@ -1,6 +1,8 @@
 import MarketPrice from "../models/marketPrice.model.js";
 import CropType from "../models/cropType.model.js";
 import District from "../models/district.model.js";
+import cache from "../services/cache.service.js";
+import ApiResponse from "../utils/apiResponse.js";
 
 // @desc    Get latest market prices for all crops (optionally filtered by district)
 // @route   GET /api/market/prices/latest
@@ -9,10 +11,11 @@ export const getLatestPrices = async (req, res, next) => {
     try {
         const { district } = req.query;
 
-        // Build query match stage
-        const matchStage = {};
-        if (district) {
-            matchStage.district = district; // Assuming district ID passed
+        // Cache check
+        const cacheKey = cache.generateKey("market_latest", { district });
+        const cachedData = cache.get(cacheKey);
+        if (cachedData) {
+            return ApiResponse.success(res, cachedData, "Latest market prices retrieved from cache");
         }
 
         // Aggregation to get the latest price per crop
@@ -50,16 +53,13 @@ export const getLatestPrices = async (req, res, next) => {
             }
         ]);
 
-        // Populate district name if needed (optional optimization)
+        // Populate district name
         await District.populate(prices, { path: "district", select: "name" });
 
-        console.log("Latest Prices Data Sample:", prices.length > 0 ? prices[0] : "No Data");
+        // Store in cache
+        cache.set(cacheKey, prices);
 
-        res.status(200).json({
-            success: true,
-            count: prices.length,
-            data: prices
-        });
+        return ApiResponse.success(res, prices, "Latest market prices retrieved successfully");
     } catch (error) {
         next(error);
     }
@@ -128,15 +128,22 @@ export const addMarketPrice = async (req, res, next) => {
 // @access  Public
 export const getMarketHighlights = async (req, res, next) => {
     try {
-        // 1. Get average price for Wheat (Major crop)
+        // Cache check
+        const cacheKey = cache.generateKey("market_highlights", {});
+        const cachedData = cache.get(cacheKey);
+        if (cachedData) {
+            return ApiResponse.success(res, cachedData, "Market highlights retrieved from cache");
+        }
+
+        // 1. Get average price for Wheat
         const wheat = await CropType.findOne({ name: "WHEAT" });
-        let avgWheatPrice = 4250; // Fallback
+        let avgWheatPrice = 4250;
         if (wheat) {
             const latestWheat = await MarketPrice.findOne({ cropType: wheat._id }).sort({ date: -1 });
             if (latestWheat) avgWheatPrice = latestWheat.price;
         }
 
-        // 2. Identify Top Gainer (compared to 7 days ago)
+        // 2. Identify Top Gainer
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -179,7 +186,7 @@ export const getMarketHighlights = async (req, res, next) => {
             gain: gains[0].gain.toFixed(1)
         } : { name: "Cotton", gain: "5.1" };
 
-        // 3. Volatile Crop (most price variations in last 30 days)
+        // 3. Volatile Crop
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -206,14 +213,16 @@ export const getMarketHighlights = async (req, res, next) => {
 
         const volatileCrop = volatility.length > 0 ? volatility[0].crop.name : "Maize";
 
-        res.status(200).json({
-            success: true,
-            data: {
-                avgWheatPrice,
-                topGainer,
-                volatileCrop
-            }
-        });
+        const result = {
+            avgWheatPrice,
+            topGainer,
+            volatileCrop
+        };
+
+        // Store in cache
+        cache.set(cacheKey, result);
+
+        return ApiResponse.success(res, result, "Market highlights retrieved successfully");
     } catch (error) {
         next(error);
     }
