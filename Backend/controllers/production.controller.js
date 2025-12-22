@@ -143,7 +143,19 @@ export const getProductionSummary = async (req, res, next) => {
     if (level) {
       matchStage.level = level;
     } else if (!district && !province) {
-      matchStage.level = "district";
+      // Check if we have district data for this query
+      const hasDistricts = await ProductionData.exists({ ...matchStage, level: "district" });
+      if (hasDistricts) {
+        matchStage.level = "district";
+      } else {
+        // Fallback to provincial or national based on what matches
+        const hasProvinces = await ProductionData.exists({ ...matchStage, level: "provincial" });
+        if (hasProvinces) {
+          matchStage.level = "provincial";
+        } else {
+          matchStage.level = "national";
+        }
+      }
     }
 
     const summary = await ProductionData.aggregate([
@@ -201,11 +213,26 @@ export const getProductionTrends = async (req, res, next) => {
 
     // To avoid double counting (district + province + national), 
     // we always aggregate from the 'district' level when looking at higher levels.
+    // To avoid double counting, we determine the best level to aggregate from
     if (level === "national") {
-      matchStage.level = "district";
+      const hasDistricts = await ProductionData.exists({ ...matchStage, level: "district" });
+      if (hasDistricts) {
+        matchStage.level = "district";
+      } else {
+        const hasProvinces = await ProductionData.exists({ ...matchStage, level: "provincial" });
+        if (hasProvinces) {
+          matchStage.level = "provincial";
+        } else {
+          matchStage.level = "national";
+        }
+      }
     } else if (level === "provincial") {
-      matchStage.level = "district";
-      // Ensure province is matched if requested for provincial level
+      const hasDistricts = await ProductionData.exists({ ...matchStage, level: "district" });
+      if (hasDistricts) {
+        matchStage.level = "district";
+      } else {
+        matchStage.level = "provincial";
+      }
     } else {
       matchStage.level = level;
     }

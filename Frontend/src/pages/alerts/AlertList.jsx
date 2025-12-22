@@ -24,7 +24,8 @@ import {
   Plus,
   Search,
   Clock,
-  ShieldAlert
+  ShieldAlert,
+  DollarSign
 } from "lucide-react";
 
 // Stat Card
@@ -117,12 +118,20 @@ const AlertList = () => {
             <h1 className="text-3xl font-extrabold text-white mb-2">Alert Center</h1>
             <p className="text-slate-400">Real-time system notifications and emergency broadcasts.</p>
           </div>
-          <button
-            onClick={() => navigate("/alerts/create")}
-            className="relative z-10 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-emerald-500/30 flex items-center gap-2"
-          >
-            <Plus size={20} /> Broadcast Alert
-          </button>
+          <div className="flex gap-4 relative z-10">
+            <button
+              onClick={() => navigate("/alerts/price")}
+              className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold transition-all border border-white/20 flex items-center gap-2"
+            >
+              <DollarSign size={20} /> Price Alerts
+            </button>
+            <button
+              onClick={() => navigate("/alerts/create")}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-emerald-500/30 flex items-center gap-2"
+            >
+              <Plus size={20} /> Broadcast Alert
+            </button>
+          </div>
         </div>
 
         {/* Stats Row */}
@@ -148,8 +157,8 @@ const AlertList = () => {
                     key={sev}
                     onClick={() => setFilter(sev)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${filter === sev
-                        ? "bg-slate-800 text-white border-slate-800 shadow-md"
-                        : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                      ? "bg-slate-800 text-white border-slate-800 shadow-md"
+                      : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
                       }`}
                   >
                     {sev}
@@ -216,17 +225,17 @@ const AlertList = () => {
                       <div className="flex flex-col sm:flex-row gap-4 justify-between">
                         <div className="flex gap-4">
                           <div className={`mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${alert.severity === 'critical' ? 'bg-red-100 text-red-600' :
-                              alert.severity === 'high' ? 'bg-orange-100 text-orange-600' :
-                                alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                                  'bg-blue-100 text-blue-600'
+                            alert.severity === 'high' ? 'bg-orange-100 text-orange-600' :
+                              alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                'bg-blue-100 text-blue-600'
                             }`}>
                             {alert.severity === 'critical' ? <ShieldAlert size={20} /> : <Bell size={20} />}
                           </div>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${alert.severity === 'critical' ? 'bg-red-50 text-red-600 border-red-100' :
-                                  alert.severity === 'high' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                                    'bg-slate-100 text-slate-500 border-slate-200'
+                                alert.severity === 'high' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                                  'bg-slate-100 text-slate-500 border-slate-200'
                                 }`}>
                                 {alert.severity}
                               </span>

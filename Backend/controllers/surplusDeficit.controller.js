@@ -61,19 +61,52 @@ export const calculateSurplusDeficitAnalysis = async (req, res, next) => {
       totalProductionValue = productionRecord.production.value;
     } else {
       // Aggregate production for Provincial or National level
-      const aggQuery = {
+      // Attempt 1: Aggregate from districts
+      const districtQuery = {
         year,
         cropCode: crop.toUpperCase(),
-        level: "district" // Always aggregate from districts for consistency
+        level: "district"
       };
-      if (province) aggQuery.provinceCode = province.toUpperCase();
+      if (province) districtQuery.provinceCode = province.toUpperCase();
 
-      const productionData = await ProductionData.find(aggQuery).populate("cropType");
+      let productionData = await ProductionData.find(districtQuery).populate("cropType");
+
+      // Attempt 2: If no districts, and level is provincial, look for direct provincial record
+      if (productionData.length === 0 && level === "provincial") {
+        const provQuery = {
+          year,
+          cropCode: crop.toUpperCase(),
+          level: "provincial",
+          provinceCode: province.toUpperCase()
+        };
+        const directProvRecord = await ProductionData.findOne(provQuery).populate("cropType");
+        if (directProvRecord) productionData = [directProvRecord];
+      }
+
+      // Attempt 3: If no districts, and level is national, look for provincial records to sum, OR national record
+      if (productionData.length === 0 && level === "national") {
+        const provQuery = {
+          year,
+          cropCode: crop.toUpperCase(),
+          level: "provincial"
+        };
+        productionData = await ProductionData.find(provQuery).populate("cropType");
+
+        if (productionData.length === 0) {
+          const natQuery = {
+            year,
+            cropCode: crop.toUpperCase(),
+            level: "national"
+          };
+          const directNatRecord = await ProductionData.findOne(natQuery).populate("cropType");
+          if (directNatRecord) productionData = [directNatRecord];
+        }
+      }
 
       if (productionData.length === 0) {
         return ApiResponse.error(
           res,
-          `No production records found for ${level} aggregation`,
+          `No production records found for ${level} analysis in ${year}`,
           404
         );
       }
@@ -382,9 +415,9 @@ export const getDeficitRegions = async (req, res, next) => {
           level: region.level,
           name: region.district?.name || region.province?.name || "National",
           code: region.districtCode || region.provinceCode,
-          ...(region.district && { province: region.province.name }),
+          ...(region.district && region.province && { province: region.province.name }),
         },
-        crop: region.cropType.name,
+        crop: region.cropType?.name,
         year: region.year,
         deficitPercentage: Math.abs(region.surplusDeficitPercentage).toFixed(2),
         balance: Math.round(region.balance),
@@ -439,9 +472,9 @@ export const getSurplusRegions = async (req, res, next) => {
         level: region.level,
         name: region.district?.name || region.province?.name || "National",
         code: region.districtCode || region.provinceCode,
-        ...(region.district && { province: region.province.name }),
+        ...(region.district && region.province && { province: region.province.name }),
       },
-      crop: region.cropType.name,
+      crop: region.cropType?.name,
       year: region.year,
       surplusPercentage: region.surplusDeficitPercentage.toFixed(2),
       balance: Math.round(region.balance),
@@ -535,7 +568,7 @@ export const getRedistributionSuggestions = async (req, res, next) => {
             name: surplus.province?.name || surplus.district?.name,
             code: surplus.provinceCode || surplus.districtCode,
             availableAmount: Math.round(surplus.balance * 0.9), // Available reserve
-            distance: surplus.distance,
+            distance: surplus.distance ? parseFloat(surplus.distance.toFixed(1)) : null,
           })),
           priority: deficit.severity === "critical" ? "high" : "medium",
         });

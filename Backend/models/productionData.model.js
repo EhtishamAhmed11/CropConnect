@@ -93,6 +93,7 @@ const ProductionDataSchema = new mongoose.Schema(
         "Provincial_CRS",
         "PCGA",
         "Estimated",
+        "Official_Historical_Records",
         "Other",
       ],
     },
