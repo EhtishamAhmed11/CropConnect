@@ -8,6 +8,7 @@ import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import Select from "../../components/common/Select";
 import Loading from "../../components/common/Loading";
+import { UserPlus, Search, Filter, Trash2, Shield, UserCheck, UserX, X } from "lucide-react";
 
 const UserManagement = () => {
   const { showSuccess, showError } = useAlert();
@@ -66,52 +67,67 @@ const UserManagement = () => {
   };
 
   const columns = [
-    { header: "Username", accessor: "username" },
-    { header: "Email", accessor: "email" },
-    { header: "Full Name", accessor: "fullName" },
     {
-      header: "Role",
+      header: "User Profile",
       render: (row) => (
-        <span className="text-sm capitalize">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm">
+            {row.username.slice(0, 2).toUpperCase()}
+          </div>
+          <div>
+            <p className="font-bold text-slate-800">{row.username}</p>
+            <p className="text-xs text-slate-500">{row.email}</p>
+          </div>
+        </div>
+      )
+    },
+    { header: "Full Name", accessor: "fullName", className: "font-medium text-slate-600" },
+    {
+      header: "Role Permission",
+      render: (row) => (
+        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200 uppercase w-fit">
+          <Shield size={12} />
           {row.role.replace(/_/g, " ")}
         </span>
       ),
     },
     {
-      header: "Status",
+      header: "Account Status",
       render: (row) => (
         <span
-          className={`px-2 py-1 rounded text-xs font-semibold ${
-            row.isActive
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
-          }`}
+          className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${row.isActive
+            ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+            : "bg-red-50 text-red-600 border-red-100"
+            }`}
         >
           {row.isActive ? "Active" : "Inactive"}
         </span>
       ),
     },
     {
-      header: "Actions",
+      header: "Quick Actions",
       render: (row) => (
-        <div className="space-x-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleToggleActive(row._id, row.isActive);
             }}
-            className="text-primary hover:underline text-sm"
+            title={row.isActive ? "Deactivate User" : "Activate User"}
+            className={`p-2 rounded-lg transition-colors ${row.isActive ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
           >
-            {row.isActive ? "Deactivate" : "Activate"}
+            {row.isActive ? <UserX size={16} /> : <UserCheck size={16} />}
           </button>
+
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleDelete(row._id);
             }}
-            className="text-red-500 hover:underline text-sm"
+            title="Delete User"
+            className="p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
           >
-            Delete
+            <Trash2 size={16} />
           </button>
         </div>
       ),
@@ -127,57 +143,66 @@ const UserManagement = () => {
 
   return (
     <Layout>
-      <div>
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">User Management</h1>
-          <Button onClick={() => setShowCreateModal(true)}>Create User</Button>
+      <div className="font-['Outfit'] space-y-8">
+
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <p className="text-indigo-500 font-bold uppercase tracking-wider text-sm mb-1">Access Control</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-4xl font-extrabold text-slate-800">User Management</h1>
+              <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">{users.length} Users</span>
+            </div>
+          </div>
+
+          <Button onClick={() => setShowCreateModal(true)} className="shadow-lg shadow-indigo-200">
+            <UserPlus size={18} className="mr-2" />
+            Create New User
+          </Button>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white p-4 rounded shadow mb-4">
-          <div className="grid grid-cols-3 gap-4">
-            <Input
-              label="Search"
-              name="search"
+        {/* Filters Bar */}
+        <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-2">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-3 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by username, email..."
               value={filters.search}
-              onChange={(e) =>
-                setFilters({ ...filters, search: e.target.value })
-              }
-              placeholder="Username, email, or name"
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border-none font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500"
             />
-            <Select
-              label="Role"
-              name="role"
+          </div>
+
+          <div className="flex gap-2">
+            <select
               value={filters.role}
               onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-              options={[
-                { value: "", label: "All Roles" },
-                { value: "admin", label: "Admin" },
-                { value: "government_policy_maker", label: "Policy Maker" },
-                { value: "ngo_coordinator", label: "NGO Coordinator" },
-                { value: "distributor", label: "Distributor" },
-              ]}
-            />
-            <Select
-              label="Status"
-              name="isActive"
+              className="px-4 py-2.5 rounded-xl bg-slate-50 border-none font-bold text-slate-600 text-sm focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="government_policy_maker">Policy Maker</option>
+              <option value="ngo_coordinator">NGO Coordinator</option>
+              <option value="distributor">Distributor</option>
+            </select>
+
+            <select
               value={filters.isActive}
-              onChange={(e) =>
-                setFilters({ ...filters, isActive: e.target.value })
-              }
-              options={[
-                { value: "", label: "All Status" },
-                { value: "true", label: "Active" },
-                { value: "false", label: "Inactive" },
-              ]}
-            />
+              onChange={(e) => setFilters({ ...filters, isActive: e.target.value })}
+              className="px-4 py-2.5 rounded-xl bg-slate-50 border-none font-bold text-slate-600 text-sm focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              <option value="">All Status</option>
+              <option value="true">Active Only</option>
+              <option value="false">Inactive Only</option>
+            </select>
           </div>
         </div>
 
         {/* Users Table */}
-        <div className="bg-white rounded shadow">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
           <Table columns={columns} data={users} />
-          <div className="p-4">
+          <div className="p-4 border-t border-slate-100">
             <Pagination
               currentPage={page}
               totalPages={totalPages}
@@ -201,6 +226,7 @@ const UserManagement = () => {
   );
 };
 
+// Extracted & Styled Modal Component
 const CreateUserModal = ({ onClose, onSuccess }) => {
   const { showSuccess, showError } = useAlert();
   const [loading, setLoading] = useState(false);
@@ -233,66 +259,53 @@ const CreateUserModal = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-screen overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Create New User</h2>
-        <form onSubmit={handleSubmit}>
-          <Input
-            label="Username"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-          />
-          <Input
-            label="Email"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-          <Input
-            label="Full Name"
-            name="fullName"
-            value={formData.fullName}
-            onChange={handleChange}
-            required
-          />
-          <Input
-            label="Phone Number"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-          />
-          <Input
-            label="Password"
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-          <Select
-            label="Role"
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            options={[
-              { value: "admin", label: "Admin" },
-              { value: "government_policy_maker", label: "Policy Maker" },
-              { value: "ngo_coordinator", label: "NGO Coordinator" },
-              { value: "distributor", label: "Distributor" },
-            ]}
-            required
-          />
-          <div className="flex space-x-2 mt-4">
-            <Button type="submit" loading={loading}>
-              Create
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-['Outfit']">
+      <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative animate-fadeIn scale-100">
+        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors">
+          <X size={24} />
+        </button>
+
+        <div className="mb-6">
+          <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 mb-4">
+            <UserPlus size={24} />
+          </div>
+          <h2 className="text-2xl font-extrabold text-slate-800">Add New User</h2>
+          <p className="text-slate-500">Create a new account and assign permissions.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input label="Username" name="username" value={formData.username} onChange={handleChange} required placeholder="e.g. johndoe" />
+          <Input label="Email" type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="name@example.com" />
+          <Input label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} required placeholder="John Doe" />
+          <Input label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+92..." />
+          <Input label="Password" type="password" name="password" value={formData.password} onChange={handleChange} required placeholder="••••••••" />
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Role Permission</label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full border-slate-200 rounded-xl px-4 py-3 bg-slate-50 font-medium focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="admin">Administrator (Full Access)</option>
+              <option value="government_policy_maker">Policy Maker</option>
+              <option value="ngo_coordinator">NGO Coordinator</option>
+              <option value="distributor">Distributor</option>
+            </select>
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <Button type="submit" loading={loading} fullWidth className="py-3 text-lg shadow-lg shadow-indigo-200">
+              Create Account
             </Button>
-            <Button type="button" variant="secondary" onClick={onClose}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+            >
               Cancel
-            </Button>
+            </button>
           </div>
         </form>
       </div>

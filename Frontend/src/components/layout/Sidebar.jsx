@@ -57,6 +57,27 @@ const Sidebar = () => {
       color: "teal",
     },
     {
+      path: "/market",
+      label: "Market Intel",
+      icon: "📈",
+      roles: ["all"],
+      color: "emerald",
+    },
+    {
+      path: "/distribution",
+      label: "Distribution",
+      icon: "🚚",
+      roles: ["admin", "government_policy_maker", "distributor"],
+      color: "blue",
+    },
+    {
+      path: "/weather",
+      label: "Weather",
+      icon: "🌦️",
+      roles: ["all"],
+      color: "sky",
+    },
+    {
       path: "/admin",
       label: "Admin Panel",
       icon: "⚙️",

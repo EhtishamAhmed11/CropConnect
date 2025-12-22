@@ -1,27 +1,55 @@
 import seedCropTypes from "./03-cropTypes.seed.js";
 import seedDistricts from "./02-districts.seed.js";
 import seedProvinces from "./01-provinces.seed.js";
+import seedSurplusDeficit from "./04-surplusDeficit.seed.js";
+import seedMarketData from "./market.seed.js";
+import seedWeather from "./05-weather.seed.js";
+import connectDb from "../connection/db.connection.js";
+import mongoose from "mongoose";
+import { fileURLToPath } from "url";
+import process from "process";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const runAllSeeds = async () => {
   try {
     console.log("🚀 Starting Complete Database Seeding Process...");
     console.log("");
 
+    // Connect to database
+    await connectDb();
+
     const startTime = Date.now();
 
-    console.log("📍 STEP 1/3: Seeding Provinces");
+    console.log("📍 STEP 1/4: Seeding Provinces");
     console.log("─".repeat(50));
     await seedProvinces();
     console.log("");
 
-    console.log("🗺️  STEP 2/3: Seeding Districts");
+    console.log("🗺️  STEP 2/4: Seeding Districts");
     console.log("─".repeat(50));
     await seedDistricts();
     console.log("");
 
-    console.log("🌾 STEP 3/3: Seeding Crop Types");
+    console.log("🌾 STEP 3/4: Seeding Crop Types");
     console.log("─".repeat(50));
     await seedCropTypes();
+    console.log("");
+
+    console.log("📊 STEP 4/4: Seeding Surplus/Deficit Data");
+    console.log("─".repeat(50));
+    await seedSurplusDeficit();
+    console.log("");
+
+    console.log("📈 STEP 5/5: Seeding Market Prices");
+    console.log("─".repeat(50));
+    await seedMarketData();
+    console.log("");
+
+    console.log("🌦️ STEP 6/6: Seeding Weather Data");
+    console.log("─".repeat(50));
+    await seedWeather();
     console.log("");
 
     const endTime = Date.now();
@@ -31,7 +59,22 @@ const runAllSeeds = async () => {
     console.log("✅ ALL SEEDS COMPLETED SUCCESSFULLY!");
     console.log(`⏱️  Total time: ${duration} seconds`);
     console.log("═".repeat(50));
-  } catch (error) {}
+
+    // Disconnect from database
+    await mongoose.disconnect();
+    console.log("🔌 Disconnected from database");
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Seeding failed:", error.message);
+    console.error(error.stack);
+    await mongoose.disconnect();
+    process.exit(1);
+  }
 };
 
-export default runAllSeeds
+// Only run if executed directly script
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  runAllSeeds();
+}
+
+export default runAllSeeds;

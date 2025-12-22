@@ -27,7 +27,7 @@ const SystemSettingSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-SystemSettingSchema.index({ key: 1 });
+
 SystemSettingSchema.index({ category: 1 });
 
 const SystemSetting = mongoose.model("SystemSetting", SystemSettingSchema);

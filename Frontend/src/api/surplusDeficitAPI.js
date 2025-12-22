@@ -10,4 +10,5 @@ export const surplusDeficitAPI = {
     api.get("/surplus-deficit/surplus-regions", { params }),
   getRedistributionSuggestions: (params) =>
     api.get("/surplus-deficit/redistribution-suggestions", { params }),
+  getMetadata: () => api.get('/surplus-deficit/metadata'),
 };

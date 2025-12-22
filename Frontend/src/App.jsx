@@ -29,6 +29,9 @@ import Redistribution from "./pages/surplus/Redistribution";
 
 // Alerts
 import AlertList from "./pages/alerts/AlertList";
+import PriceAlerts from "./pages/alerts/PriceAlerts";
+import CreatePriceThreshold from "./pages/alerts/CreatePriceThreshold";
+import CreateTollThreshold from "./pages/alerts/CreateTollThreshold";
 
 // Reports
 import ReportList from "./pages/reports/ReportList";
@@ -48,6 +51,11 @@ import MapView from "./pages/gis/MapView";
 import CreateAlert from "./pages/alerts/CreateAlert";
 import ReportDetails from "./pages/reports/ReportDetails";
 import ReportDetailsWrapper from "./pages/reports/ReportDetailsWrapper";
+
+// New Pages
+import MarketDashboard from "./pages/market/MarketDashboard";
+import DistributionPage from "./pages/distribution/DistributionPage";
+import WeatherAnalysis from "./pages/weather/WeatherAnalysis";
 
 // Dashboard Router Component
 const DashboardRouter = () => {
@@ -181,6 +189,30 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/alerts/price"
+              element={
+                <ProtectedRoute>
+                  <PriceAlerts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/alerts/price/create"
+              element={
+                <ProtectedRoute>
+                  <CreatePriceThreshold />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/alerts/toll/create"
+              element={
+                <ProtectedRoute>
+                  <CreateTollThreshold />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Report Routes */}
             <Route
@@ -254,6 +286,36 @@ function App() {
                   ]}
                 >
                   <MapView />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Market Intelligence */}
+            <Route
+              path="/market"
+              element={
+                <ProtectedRoute>
+                  <MarketDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Distribution/Logistics */}
+            <Route
+              path="/distribution"
+              element={
+                <ProtectedRoute>
+                  <DistributionPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Weather Analysis */}
+            <Route
+              path="/weather"
+              element={
+                <ProtectedRoute>
+                  <WeatherAnalysis />
                 </ProtectedRoute>
               }
             />

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pakistan Map - Clean Implementation</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .controls {
+            padding: 20px;
+            text-align: center;
+            background: #f9f9f9;
+            border-bottom: 2px solid #ddd;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .map-wrapper {
+            width: 100%;
+            height: 850px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #f0f0f0;
+        }
+
+        /* District styling */
+        .district {
+            fill: #e0e0e0;
+            stroke: #333;
+            stroke-width: 1;
+            cursor: pointer;
+            transition: fill 0.2s;
+        }
+
+        .district:hover {
+            fill: #c0c0c0;
+            stroke: #000;
+            stroke-width: 2;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            pointer-events: none;
+            font-size: 14px;
+            z-index: 1000;
+        }
+
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            font-size: 13px;
+        }
+
+        .legend h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ Pakistan Interactive Map</h1>
+        </div>
+
+        <div class="controls">
+            <button onclick="loadMap()">Load Map</button>
+            <div id="status">Click "Load Map" to start</div>
+        </div>
+
+        <div class="map-wrapper">
+            <svg id="map"></svg>
+            <div class="legend" id="legend" style="display: none;">
+                <h3>Map Controls</h3>
+                <div>🖱️ Drag to pan</div>
+                <div>🔍 Scroll to zoom</div>
+                <div>👆 Hover for names</div>
+                <div id="info" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let geoData = null;
+
+        async function loadMap() {
+            document.getElementById('status').innerHTML = '⏳ Loading GeoJSON...';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/gis/geojson/districts');
+                const result = await response.json();
+
+                if (!result.success || !result.data.features) {
+                    throw new Error('Failed to load GeoJSON');
+                }
+
+                geoData = result.data;
+                console.log('✅ Loaded', geoData.features.length, 'districts');
+
+                renderMap();
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('status').innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        function renderMap() {
+            const svg = d3.select('#map');
+            const container = document.querySelector('.map-wrapper');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            svg.attr('width', width).attr('height', height).selectAll('*').remove();
+
+            // Create projection - use fitExtent for proper scaling
+            const projection = d3.geoMercator()
+                .fitExtent([[50, 50], [width - 50, height - 50]], geoData);
+
+            const path = d3.geoPath().projection(projection);
+
+            // Create a group for all map elements
+            const g = svg.append('g').attr('id', 'map-group');
+
+            // Draw districts
+            const districts = g.selectAll('path')
+                .data(geoData.features)
+                .enter()
+                .append('path')
+                .attr('class', 'district')
+                .attr('d', path)
+                .attr('data-name', d => d.properties.name);
+
+            // Add interactivity
+            districts
+                .on('mouseover', function (event, d) {
+                    showTooltip(event, d.properties.name);
+                })
+                .on('mousemove', function (event) {
+                    d3.select('.tooltip')
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY - 10) + 'px');
+                })
+                .on('mouseout', function () {
+                    d3.selectAll('.tooltip').remove();
+                })
+                .on('click', function (event, d) {
+                    console.log('Clicked:', d.properties.name);
+                });
+
+            // Get bounding box of the map
+            const bounds = g.node().getBBox();
+            console.log('Map bounds:', bounds);
+
+            // Setup zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([1, 8])  // Min and max zoom
+                .translateExtent([[0, 0], [width, height]])  // Prevent panning outside
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+
+            svg.call(zoom);
+
+            // Show legend
+            document.getElementById('legend').style.display = 'block';
+            document.getElementById('info').innerHTML = `
+                <strong>Districts:</strong> ${geoData.features.length}<br>
+                <strong>Size:</strong> ${width}×${height}px
+            `;
+
+            document.getElementById('status').innerHTML =
+                `✅ Rendered ${geoData.features.length} districts! Pan and zoom to explore.`;
+        }
+
+        function showTooltip(event, name) {
+            d3.selectAll('.tooltip').remove();
+            d3.select('body')
+                .append('div')
+                .attr('class', 'tooltip')
+                .style('left', (event.pageX + 10) + 'px')
+                .style('top', (event.pageY - 10) + 'px')
+                .html(`<strong>${name}</strong>`);
+        }
+    </script>
+</body>
+
+</html>

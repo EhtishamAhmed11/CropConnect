@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 import District from "../models/district.model.js";
 import Province from "../models/province.model.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const districts = [
   {
@@ -717,6 +723,7 @@ const districts = [
   },
 ];
 
+
 const seedDistricts = async () => {
   try {
     console.log(`starting District seeding...`);
@@ -734,11 +741,87 @@ const seedDistricts = async () => {
     await District.deleteMany({});
     console.log("Cleared existing districts");
 
-    // Add province ObjectId to each district
-    const districtsWithProvinceId = districts.map((district) => ({
-      ...district,
-      province: provinceMap[district.provinceCode],
-    }));
+    // Load GeoJSON data
+    let geoJsonData = null;
+    try {
+      const geoJsonPath = path.join(__dirname, 'data', 'PAK_adm3.json');
+      console.log(`📂 Looking for GeoJSON at: ${geoJsonPath}`);
+      const geoJsonContent = fs.readFileSync(geoJsonPath, 'utf8');
+      geoJsonData = JSON.parse(geoJsonContent);
+      console.log(`📍 Loaded ${geoJsonData.features.length} district geometries from GeoJSON`);
+    } catch (error) {
+      console.warn('⚠️  Could not load GeoJSON file, using fallback geometry:', error.message);
+    }
+
+    // Create a map of district names to geometry from GeoJSON
+    const geometryMap = {};
+    if (geoJsonData && geoJsonData.features) {
+      geoJsonData.features.forEach(feature => {
+        const districtName = feature.properties.NAME_3;
+        if (districtName && feature.geometry) {
+          // Store with lowercase key for case-insensitive matching
+          const key = districtName.toLowerCase();
+
+          // If this is a split district (e.g., "Gujranwala 1"), also map the base name
+          const baseMatch = districtName.match(/^(.+?)\s+\d+$/);
+          if (baseMatch) {
+            const baseName = baseMatch[1].toLowerCase();
+            // For split districts, use the first one found or merge if needed
+            if (!geometryMap[baseName]) {
+              geometryMap[baseName] = feature.geometry;
+            }
+          }
+
+          // Store the exact name too
+          geometryMap[key] = feature.geometry;
+        }
+      });
+
+      console.log(`📊 Created geometry map with ${Object.keys(geometryMap).length} entries`);
+    }
+
+    // Add province ObjectId and real geometry
+    const districtsWithProvinceId = districts.map((district) => {
+      // Try to find matching geometry from GeoJSON
+      const districtKey = district.name.toLowerCase();
+      let geometry = geometryMap[districtKey];
+
+      // If not found, try fuzzy matching (contains)
+      if (!geometry) {
+        const fuzzyKey = Object.keys(geometryMap).find(key =>
+          key.includes(districtKey) || districtKey.includes(key)
+        );
+        if (fuzzyKey) {
+          geometry = geometryMap[fuzzyKey];
+          console.log(`🔍 Fuzzy matched "${district.name}" → "${fuzzyKey}"`);
+        }
+      }
+
+      // Fallback: generate a simple square polygon if no GeoJSON match
+      if (!geometry) {
+        const { latitude, longitude } = district.coordinates;
+        const offset = 0.15;
+        geometry = {
+          type: "Polygon",
+          coordinates: [[
+            [longitude - offset, latitude - offset],
+            [longitude + offset, latitude - offset],
+            [longitude + offset, latitude + offset],
+            [longitude - offset, latitude + offset],
+            [longitude - offset, latitude - offset]
+          ]]
+        };
+        console.log(`⚠️  Using fallback geometry for: ${district.name}`);
+      } else {
+        console.log(`✅ Matched "${district.name}" with ${geometry.coordinates[0]?.length || 0} points`);
+      }
+
+      return {
+        ...district,
+        province: provinceMap[district.provinceCode],
+        geometry
+      };
+    });
 
     // Insert districts
     const insertedDistricts = await District.insertMany(
@@ -782,3 +865,4 @@ const seedDistricts = async () => {
 };
 
 export default seedDistricts;
+

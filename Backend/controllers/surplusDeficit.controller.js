@@ -1,6 +1,6 @@
 // backend/controllers/surplusDeficit.controller.js
 import ProductionData from "../models/productionData.model.js";
-import ConsumptionData from"../models/consumptionData.model.js";
+import ConsumptionData from "../models/consumptionData.model.js";
 import SurplusDeficit from "../models/surplusDeficit.model.js";
 import Province from "../models/province.model.js";
 import District from "../models/district.model.js";
@@ -11,6 +11,7 @@ import {
   calculateSurplusDeficit,
   calculateConsumption,
   generateRecommendations,
+  calculateDistance,
 } from "../utils/calculations.js";
 
 /**
@@ -41,29 +42,84 @@ export const calculateSurplusDeficitAnalysis = async (req, res, next) => {
     if (district) prodQuery.districtCode = district.toUpperCase();
 
     // Get production data
-    const productionRecord = await ProductionData.findOne(prodQuery)
-      .populate("province", "name code population")
-      .populate("district", "name code population")
-      .populate("cropType", "name code avgConsumptionPerCapita");
+    let productionRecord;
+    let totalProductionValue = 0;
 
-    if (!productionRecord) {
+    if (level === "district") {
+      productionRecord = await ProductionData.findOne(prodQuery)
+        .populate("province", "name code population")
+        .populate("district", "name code population")
+        .populate("cropType", "name code avgConsumptionPerCapita");
+
+      if (!productionRecord) {
+        return ApiResponse.error(
+          res,
+          "Production data not found for specified district",
+          404
+        );
+      }
+      totalProductionValue = productionRecord.production.value;
+    } else {
+      // Aggregate production for Provincial or National level
+      const aggQuery = {
+        year,
+        cropCode: crop.toUpperCase(),
+        level: "district" // Always aggregate from districts for consistency
+      };
+      if (province) aggQuery.provinceCode = province.toUpperCase();
+
+      const productionData = await ProductionData.find(aggQuery).populate("cropType");
+
+      if (productionData.length === 0) {
+        return ApiResponse.error(
+          res,
+          `No production records found for ${level} aggregation`,
+          404
+        );
+      }
+
+      totalProductionValue = productionData.reduce((sum, p) => sum + p.production.value, 0);
+      // Use the first record to get cropType details
+      productionRecord = productionData[0];
+    }
+
+    if (!productionRecord || !productionRecord.cropType) {
       return ApiResponse.error(
         res,
-        "Production data not found for specified parameters",
+        "Crop type details not found. Please ensure crop configuration exists.",
         404
       );
     }
 
     // Get population
     let population;
+    let regionName;
+
     if (level === "district") {
-      population = productionRecord.district.population;
+      if (!productionRecord.district) {
+        return ApiResponse.error(
+          res,
+          "District details not found in production record.",
+          404
+        );
+      }
+      population = productionRecord.district.population || 0;
+      regionName = productionRecord.district.name;
     } else if (level === "provincial") {
-      population = productionRecord.province.population;
+      const provinceDoc = await Province.findOne({ code: province.toUpperCase() });
+      if (!provinceDoc) {
+        return ApiResponse.error(res, "Province not found", 404);
+      }
+      population = provinceDoc.population || 0;
+      regionName = provinceDoc.name;
+      // Ensure productionRecord matches the province for later saving
+      productionRecord.province = provinceDoc._id;
+      productionRecord.provinceCode = provinceDoc.code;
     } else {
-      // National level - sum all provinces
-      const provinces = await Province.find({});
-      population = provinces.reduce((sum, p) => sum + p.population, 0);
+      // National level
+      const allProvinces = await Province.find({});
+      population = allProvinces.reduce((sum, p) => sum + (p.population || 0), 0);
+      regionName = "Pakistan";
     }
 
     // Calculate consumption
@@ -75,17 +131,10 @@ export const calculateSurplusDeficitAnalysis = async (req, res, next) => {
     );
 
     // Calculate surplus/deficit
-    const production = productionRecord.production.value;
+    const production = totalProductionValue;
     const analysis = calculateSurplusDeficit(production, totalConsumption);
 
     // Generate recommendations
-    const regionName =
-      level === "district"
-        ? productionRecord.district.name
-        : level === "provincial"
-        ? productionRecord.province.name
-        : "Pakistan";
-
     const recommendations = generateRecommendations(
       analysis.severity,
       regionName,
@@ -96,12 +145,12 @@ export const calculateSurplusDeficitAnalysis = async (req, res, next) => {
     const surplusDeficitRecord = await SurplusDeficit.create({
       year,
       level,
-      province: productionRecord.province?._id,
-      provinceCode: productionRecord.provinceCode,
-      district: productionRecord.district?._id,
-      districtCode: productionRecord.districtCode,
-      cropType: productionRecord.cropType._id,
-      cropCode: crop.toUpperCase(),
+      province: level !== "national" ? (productionRecord.province?._id || productionRecord.province) : undefined,
+      provinceCode: level !== "national" ? productionRecord.provinceCode : undefined,
+      district: level === "district" ? (productionRecord.district?._id || productionRecord.district) : undefined,
+      districtCode: level === "district" ? productionRecord.districtCode : undefined,
+      cropType: productionRecord.cropType._id || productionRecord.cropType,
+      cropCode: productionRecord.cropCode,
       production,
       consumption: totalConsumption,
       balance: analysis.balance,
@@ -109,13 +158,8 @@ export const calculateSurplusDeficitAnalysis = async (req, res, next) => {
       surplusDeficitPercentage: analysis.surplusDeficitPercentage,
       selfSufficiencyRatio: analysis.selfSufficiencyRatio,
       severity: analysis.severity,
-      requiresIntervention: analysis.requiresIntervention,
-      priorityLevel:
-        analysis.severity === "critical"
-          ? "high"
-          : analysis.severity === "moderate"
-          ? "medium"
-          : "low",
+      requiresIntervention: analysis.status === "deficit" && analysis.severity === "critical",
+      priorityLevel: analysis.severity === "critical" ? "high" : analysis.severity === "moderate" ? "medium" : "low",
       recommendations,
       calculatedBy: req.user._id,
       calculatedAt: new Date(),
@@ -126,13 +170,11 @@ export const calculateSurplusDeficitAnalysis = async (req, res, next) => {
       await Alert.create({
         alertId: `ALERT-${Date.now()}`,
         title: `${analysis.severity.toUpperCase()} Deficit Alert: ${regionName}`,
-        message: `${
-          productionRecord.cropType.name
-        } production in ${regionName} shows ${
-          analysis.severity
-        } deficit (${Math.abs(analysis.surplusDeficitPercentage).toFixed(
-          2
-        )}%). Immediate attention required.`,
+        message: `${productionRecord.cropType.name
+          } production in ${regionName} shows ${analysis.severity
+          } deficit (${Math.abs(analysis.surplusDeficitPercentage).toFixed(
+            2
+          )}%). Immediate attention required.`,
         alertType: "deficit_critical",
         severity: analysis.severity === "critical" ? "critical" : "high",
         relatedEntity: {
@@ -157,7 +199,7 @@ export const calculateSurplusDeficitAnalysis = async (req, res, next) => {
         region: {
           level,
           name: regionName,
-          ...(level === "district" && {
+          ...(level === "district" && productionRecord.province && {
             province: productionRecord.province.name,
           }),
         },
@@ -438,9 +480,10 @@ export const getRedistributionSuggestions = async (req, res, next) => {
       level: "provincial", // Focus on provincial level
     };
 
-    // Get all records
+    // Get all records with geographic coordinates
     const records = await SurplusDeficit.find(matchStage)
-      .populate("province", "name code")
+      .populate("province", "name code coordinates")
+      .populate("district", "name code coordinates")
       .populate("cropType", "name code")
       .lean();
 
@@ -452,24 +495,47 @@ export const getRedistributionSuggestions = async (req, res, next) => {
     // Match deficit regions with surplus regions
     deficitRegions.forEach((deficit) => {
       const deficitAmount = Math.abs(deficit.balance);
+      const targetCoords = deficit.province?.coordinates || deficit.district?.coordinates;
 
       const matchingSurplus = surplusRegions
         .filter((surplus) => surplus.balance > 0)
-        .sort((a, b) => b.balance - a.balance);
+        .map(surplus => {
+          const sourceCoords = surplus.province?.coordinates || surplus.district?.coordinates;
+          let distance = null;
+
+          if (targetCoords && sourceCoords) {
+            distance = calculateDistance(
+              [targetCoords.latitude, targetCoords.longitude],
+              [sourceCoords.latitude, sourceCoords.longitude]
+            );
+          }
+
+          return {
+            ...surplus,
+            distance: distance
+          };
+        })
+        .sort((a, b) => {
+          // Sort by distance (closest first), then by balance (largest first)
+          if (a.distance !== null && b.distance !== null) {
+            if (a.distance !== b.distance) return a.distance - b.distance;
+          }
+          return b.balance - a.balance;
+        });
 
       if (matchingSurplus.length > 0) {
         suggestions.push({
           deficitRegion: {
-            name: deficit.province.name,
-            code: deficit.provinceCode,
+            name: deficit.province?.name || deficit.district?.name,
+            code: deficit.provinceCode || deficit.districtCode,
             deficitAmount: Math.round(deficitAmount),
             severity: deficit.severity,
           },
           surplusSources: matchingSurplus.slice(0, 3).map((surplus) => ({
-            name: surplus.province.name,
-            code: surplus.provinceCode,
-            availableAmount: Math.round(surplus.balance * 0.8),
-            distance: "TBD", // Can be calculated if coordinates available
+            name: surplus.province?.name || surplus.district?.name,
+            code: surplus.provinceCode || surplus.districtCode,
+            availableAmount: Math.round(surplus.balance * 0.9), // Available reserve
+            distance: surplus.distance,
           })),
           priority: deficit.severity === "critical" ? "high" : "medium",
         });
@@ -489,6 +555,43 @@ export const getRedistributionSuggestions = async (req, res, next) => {
         },
       },
       "Redistribution suggestions generated successfully"
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get metadata for filters (years, crops, provinces, districts)
+ * @route   GET /api/surplus-deficit/metadata
+ * @access  Public
+ */
+export const getSurplusDeficitMetadata = async (req, res, next) => {
+  try {
+    const [sdYears, prodYears, crops, provinces, districts] = await Promise.all([
+      SurplusDeficit.distinct("year"),
+      ProductionData.distinct("year"),
+      CropType.find({}, "name code").lean(),
+      Province.find({ isActive: true }, "name code").lean(),
+      District.find({ isActive: true }, "name code provinceCode").lean(),
+    ]);
+
+    // Merge and deduplicate years
+    const years = [...new Set([...sdYears, ...prodYears])].sort((a, b) => b.localeCompare(a));
+
+    return ApiResponse.success(
+      res,
+      {
+        years,
+        crops: crops.map(c => ({ label: c.name, value: c.code })),
+        provinces: provinces.map(p => ({ label: p.name, value: p.code })),
+        districts: districts.map(d => ({
+          label: d.name,
+          value: d.code,
+          province: d.provinceCode
+        })),
+      },
+      "Metadata retrieved successfully"
     );
   } catch (error) {
     next(error);

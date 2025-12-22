@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* Flowing Dashed Line Animation for Routes */
+@keyframes dash-flow {
+  from {
+    stroke-dashoffset: 20;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.route-flow-animation {
+  animation: dash-flow 1s linear infinite;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+.glass-panel-dark {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  color: white;
+}
+
+.custom-tooltip-arrow {
+    background: rgba(15, 23, 42, 0.9) !important;
+    border: none !important;
+    color: white !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3) !important;
+    padding: 0 !important;
+}
+
+.leaflet-tooltip-left:before, .leaflet-tooltip-right:before {
+    border-left-color: rgba(15, 23, 42, 0.9) !important;
+    border-right-color: rgba(15, 23, 42, 0.9) !important;
+}

@@ -39,7 +39,7 @@ const CropTypeSchema = new mongoose.Schema({
     default: true,
   },
 });
-CropTypeSchema.index({ code: 1 });
+
 CropTypeSchema.index({ category: 1 });
 
 const CropType = mongoose.model("CropType", CropTypeSchema);

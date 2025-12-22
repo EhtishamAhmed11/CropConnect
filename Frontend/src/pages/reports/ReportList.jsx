@@ -3,10 +3,81 @@ import { useNavigate } from "react-router-dom";
 import { reportAPI } from "../../api/reportAPI";
 import { useAlert } from "../../context/AlertContext";
 import Layout from "../../components/layout/Layout";
-import Table from "../../components/common/Table";
 import Pagination from "../../components/common/Pagination";
-import Button from "../../components/common/Button";
 import Loading from "../../components/common/Loading";
+import {
+  FileText,
+  Download,
+  Trash2,
+  Plus,
+  Search,
+  Filter,
+  FileSpreadsheet,
+  File
+} from "lucide-react";
+
+// Report Card
+const ReportCard = ({ report, onDelete, onDownload, onClick }) => {
+  const getIcon = (format) => {
+    if (format === 'excel' || format === 'csv') return <FileSpreadsheet className="text-emerald-500" size={24} />;
+    if (format === 'pdf') return <FileText className="text-red-500" size={24} />;
+    return <File className="text-slate-500" size={24} />;
+  }
+
+  const getStatusColor = (status) => {
+    if (status === 'completed') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    if (status === 'generating') return 'bg-blue-100 text-blue-700 border-blue-200';
+    if (status === 'failed') return 'bg-red-100 text-red-700 border-red-200';
+    return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+
+  return (
+    <div onClick={onClick} className="group bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all cursor-pointer relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+        <FileText size={80} />
+      </div>
+
+      <div className="relative z-10 flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center shadow-inner">
+            {getIcon(report.format)}
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{report.title}</h3>
+            <p className="text-xs text-slate-500 mt-1 line-clamp-2 mb-2 h-8">{report.description || "No description provided."}</p>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(report.status)}`}>
+                {report.status}
+              </span>
+              <span className="text-slate-400 text-xs font-medium">
+                {new Date(report.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {report.status === 'completed' && report.fileUrl && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDownload(report); }}
+              className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-blue-500 hover:text-white transition-colors"
+              title="Download"
+            >
+              <Download size={16} />
+            </button>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(report._id); }}
+            className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-red-500 hover:text-white transition-colors"
+            title="Delete"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ReportList = () => {
   const navigate = useNavigate();
@@ -46,104 +117,79 @@ const ReportList = () => {
     }
   };
 
+  const handleDownload = (row) => {
+    // Logic for download if URL exists
+    if (row.fileUrl) {
+      window.open(row.fileUrl, "_blank");
+    } else {
+      showError("File not available");
+    }
+  }
+
   const handleRowClick = (row) => {
     navigate(`/reports/${row._id}`);
   };
 
-  const columns = [
-    { header: "Title", accessor: "title" },
-    { header: "Type", accessor: "reportType" },
-    { header: "Format", accessor: "format" },
-    {
-      header: "Status",
-      render: (row) => (
-        <span
-          className={`px-2 py-1 rounded text-xs font-semibold ${row.status === "completed"
-              ? "bg-green-100 text-green-800"
-              : row.status === "generating"
-                ? "bg-yellow-100 text-yellow-800"
-                : row.status === "failed"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-gray-100 text-gray-800"
-            }`}
-        >
-          {row.status}
-        </span>
-      ),
-    },
-    {
-      header: "Created",
-      render: (row) => new Date(row.createdAt).toLocaleDateString(),
-    },
-    {
-      header: "Actions",
-      render: (row) => (
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/reports/${row._id}`);
-            }}
-            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition font-medium"
-          >
-            View Details
-          </button>
-          {row.status === "completed" && row.fileUrl && (
-            <a
-              href={row.fileUrl}
-              download
-              className="px-3 py-1 text-sm text-indigo-600 border border-indigo-200 rounded hover:bg-indigo-50 transition"
-            >
-              Download
-            </a>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete(row._id);
-            }}
-            className="px-3 py-1 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 transition"
-          >
-            Delete
-          </button>
-        </div>
-      ),
-    },
-  ];
-
-  if (loading)
-    return (
-      <Layout>
-        <Loading />
-      </Layout>
-    );
+  if (loading) return <Layout><Loading /></Layout>;
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="font-['Outfit'] space-y-8 p-2">
+
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Reports</h1>
-          <Button onClick={() => navigate("/reports/generate")}>
-            Generate New Report
-          </Button>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-blue-900 to-indigo-900 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+          <div className="relative z-10">
+            <h1 className="text-3xl font-extrabold text-white mb-2">Report Archives</h1>
+            <p className="text-blue-200">Generate and manage official system documentation.</p>
+          </div>
+          <button
+            onClick={() => navigate("/reports/generate")}
+            className="relative z-10 bg-white hover:bg-blue-50 text-blue-900 px-6 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
+          >
+            <Plus size={20} /> Generate New
+          </button>
         </div>
 
-        {/* Reports Table */}
-        <div className="bg-white shadow-md rounded-xl overflow-hidden">
-          <Table
-            columns={columns}
-            data={reports}
-            onRowClick={handleRowClick} // make row clickable
-          />
-          <div className="p-4 border-t border-gray-200">
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
+        {/* Filter Bar */}
+        <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="relative flex-grow w-full md:w-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search reports by title..."
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          <button className="flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">
+            <Filter size={18} /> Filter
+          </button>
         </div>
+
+        {/* Reports Grid */}
+        {reports.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {reports.map((report) => (
+              <ReportCard
+                key={report._id}
+                report={report}
+                onClick={() => handleRowClick(report)}
+                onDelete={handleDelete}
+                onDownload={handleDownload}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">
+            <FileText className="mx-auto mb-4 opacity-20" size={48} />
+            <p className="font-medium">No reports generated yet.</p>
+          </div>
+        )}
+
+        <div className="flex justify-center">
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+
       </div>
     </Layout>
   );

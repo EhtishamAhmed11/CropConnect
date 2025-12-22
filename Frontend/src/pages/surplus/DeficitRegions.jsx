@@ -3,26 +3,47 @@ import { surplusDeficitAPI } from "../../api/surplusDeficitAPI";
 import { useAlert } from "../../context/AlertContext";
 import Layout from "../../components/layout/Layout";
 import Loading from "../../components/common/Loading";
-import Input from "../../components/common/Input";
+import { AlertCircle, TrendingDown } from "lucide-react";
 
 const DeficitRegions = () => {
   const { showError } = useAlert();
   const [loading, setLoading] = useState(true);
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [metadata, setMetadata] = useState({ years: [], crops: [] });
   const [regions, setRegions] = useState([]);
   const [filters, setFilters] = useState({
-    year: "2024-25",
-    crop: "WHEAT",
-    minDeficit: 10,
-  });
-  const [tempFilters, setTempFilters] = useState({
-    year: "2024-25",
-    crop: "WHEAT",
+    year: "",
+    crop: "",
     minDeficit: 10,
   });
 
   useEffect(() => {
-    fetchData();
+    loadMetadata();
+  }, []);
+
+  useEffect(() => {
+    if (filters.year && filters.crop) {
+      fetchData();
+    }
   }, [filters]);
+
+  const loadMetadata = async () => {
+    try {
+      const res = await surplusDeficitAPI.getMetadata();
+      if (res.data.success) {
+        setMetadata(res.data.data);
+        setFilters(prev => ({
+          ...prev,
+          year: res.data.data.years[0] || "",
+          crop: res.data.data.crops[0]?.value || ""
+        }));
+      }
+    } catch (err) {
+      showError("Failed to load filter options");
+    } finally {
+      setMetaLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -30,208 +51,114 @@ const DeficitRegions = () => {
       const response = await surplusDeficitAPI.getDeficitRegions(filters);
       setRegions(response.data.data.deficitRegions);
     } catch (error) {
-      console.error("Failed to fetch deficit regions:", error);
-      showError("Failed to fetch deficit regions");
+      showError("Failed to fetch deficit reports");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApplyFilters = () => {
-    setFilters(tempFilters);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
-
-  const handleResetFilters = () => {
-    const defaultFilters = {
-      year: "2024-25",
-      crop: "WHEAT",
-      minDeficit: 10,
-    };
-    setTempFilters(defaultFilters);
-    setFilters(defaultFilters);
-  };
-
-  if (loading)
-    return (
-      <Layout>
-        <Loading />
-      </Layout>
-    );
 
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-6">Deficit Regions</h1>
+      <div className="max-w-7xl mx-auto px-4 py-8 font-sans">
 
-      {/* Filters Section */}
-      <div className="bg-white p-4 rounded shadow mb-6">
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <Input
-            label="Year"
-            value={tempFilters.year}
-            onChange={(e) =>
-              setTempFilters({ ...tempFilters, year: e.target.value })
-            }
-            placeholder="e.g., 2024-25"
-          />
-          <Input
-            label="Crop Code"
-            value={tempFilters.crop}
-            onChange={(e) =>
-              setTempFilters({ ...tempFilters, crop: e.target.value })
-            }
-            placeholder="e.g., WHEAT, RICE"
-          />
-          <Input
-            label="Min Deficit %"
-            type="number"
-            value={tempFilters.minDeficit}
-            onChange={(e) =>
-              setTempFilters({ ...tempFilters, minDeficit: e.target.value })
-            }
-            placeholder="Minimum deficit percentage"
-          />
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-10">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Deficit Zones</h1>
+            <p className="text-slate-600 mt-2 max-w-2xl">
+              Regions where consumption exceeds production. Identify areas requiring supply intervention.
+            </p>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <select
+              name="year"
+              value={filters.year}
+              onChange={handleChange}
+              className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {metadata.years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+
+            <select
+              name="crop"
+              value={filters.crop}
+              onChange={handleChange}
+              className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {metadata.crops.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+
+            <div className="flex items-center gap-2 px-2 bg-slate-50 border border-slate-300 rounded-lg">
+              <span className="text-xs text-slate-500 font-bold uppercase">Min %</span>
+              <input
+                type="number"
+                name="minDeficit"
+                value={filters.minDeficit}
+                onChange={handleChange}
+                className="bg-transparent border-none w-16 text-sm font-medium focus:ring-0"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Filter Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleApplyFilters}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
-          >
-            Apply Filters
-          </button>
-          <button
-            onClick={handleResetFilters}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors font-medium"
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-
-      {/* Regions Grid */}
-      <div className="bg-white rounded shadow">
-        {regions.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loading />
+            <p className="text-slate-500 mt-4">Loading regional data...</p>
+          </div>
+        ) : regions.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {regions.map((region, index) => (
-              <div
-                key={index}
-                className="border border-red-200 rounded p-4 bg-red-50"
-              >
-                <div className="flex justify-between items-start mb-2">
+              <div key={index} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold text-lg">
-                      {region.region.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {region.crop} - {region.year}
-                    </p>
+                    <h3 className="text-xl font-bold text-slate-800">{region.region.name}</h3>
+                    <p className="text-xs text-slate-500 uppercase font-medium mt-1">{region.crop} • {region.year}</p>
                   </div>
-                  <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                    Deficit
-                  </span>
+                  <div className="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
+                    <TrendingDown size={16} /> -{region.deficitPercentage}%
+                  </div>
                 </div>
 
-                <div className="mt-3 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">
-                      Deficit Percentage:
-                    </span>
-                    <span className="text-red-600 font-bold">
-                      {region.deficitPercentage}%
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Balance:</span>
-                    <span className="font-semibold text-red-700">
-                      {region.balance.toLocaleString()} tonnes
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-2 border-t border-red-200">
-                    <span className="text-sm text-gray-600">Production:</span>
-                    <span className="text-sm">
-                      {region.production?.toLocaleString() || "N/A"} tonnes
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Consumption:</span>
-                    <span className="text-sm">
-                      {region.consumption?.toLocaleString() || "N/A"} tonnes
-                    </span>
-                  </div>
-
-                  {region.requiredFromOthers && (
-                    <div className="mt-3 p-2 bg-red-100 rounded">
-                      <p className="text-xs text-red-800 font-medium">
-                        Required from other regions:
-                      </p>
-                      <p className="text-sm font-bold text-red-900">
-                        {region.requiredFromOthers.toLocaleString()} tonnes
-                      </p>
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-1">Net Shortfall</p>
+                      <p className="text-2xl font-bold text-red-600">{Math.abs(region.balance).toLocaleString()} t</p>
                     </div>
-                  )}
+                    <AlertCircle className="text-red-200" size={32} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Production</p>
+                      <p className="font-semibold text-slate-700">{region.production?.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Demand</p>
+                      <p className="font-semibold text-slate-700">{region.consumption?.toLocaleString()}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="p-6 text-center text-gray-500">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400 mb-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <p className="text-lg font-medium">No deficit regions found</p>
-            <p className="text-sm mt-1">
-              Try adjusting your filters to see results
-            </p>
+          <div className="text-center py-20 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+            <div className="inline-block p-4 rounded-full bg-white shadow-sm mb-4">🛡️</div>
+            <h3 className="text-lg font-bold text-slate-800">No Deficits Found</h3>
+            <p className="text-slate-500">All regions are meeting consumption demands for these parameters.</p>
           </div>
         )}
-      </div>
 
-      {/* Summary Section */}
-      {regions.length > 0 && (
-        <div className="mt-6 bg-white rounded shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Summary</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-red-50 rounded border border-red-200">
-              <p className="text-sm text-gray-600">Total Deficit Regions</p>
-              <p className="text-2xl font-bold text-red-600">
-                {regions.length}
-              </p>
-            </div>
-            <div className="p-4 bg-orange-50 rounded border border-orange-200">
-              <p className="text-sm text-gray-600">Total Deficit (tonnes)</p>
-              <p className="text-2xl font-bold text-orange-600">
-                {regions
-                  .reduce((sum, r) => sum + Math.abs(r.balance), 0)
-                  .toLocaleString()}
-              </p>
-            </div>
-            <div className="p-4 bg-yellow-50 rounded border border-yellow-200">
-              <p className="text-sm text-gray-600">Avg Deficit Percentage</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {(
-                  regions.reduce((sum, r) => sum + r.deficitPercentage, 0) /
-                  regions.length
-                ).toFixed(1)}
-                %
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </Layout>
   );
 };

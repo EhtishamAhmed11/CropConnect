@@ -7,9 +7,11 @@ export const gisAPI = {
   getDistricts: (params) => api.get("/gis/districts", { params }),
   getDistrictByCode: (code) => api.get(`/gis/districts/${code}`),
   getProductionMapData: (params) => api.get("/gis/production-map", { params }),
-  getSurplusDeficitMapData: (params) => api.get("/gis/surplus-deficit-map", { params }),
+  getSurplusDeficitMap: (params) => api.get("/gis/surplus-deficit-map", { params }),
   getProductionHeatmap: (params) => api.get("/gis/production-heatmap", { params }),
   getRegionsNearby: (params) => api.get("/gis/regions-nearby", { params }),
   getProvincesGeoJSON: () => api.get("/gis/geojson/provinces"),
   getDistrictsGeoJSON: (params) => api.get("/gis/geojson/districts", { params }),
+  getRoute: (surplusId, deficitId) => api.get("/gis/routes", { params: { surplusId, deficitId } }),
+  getOptimizedRoutes: (params) => api.get("/gis/optimize-routes", { params }),
 };

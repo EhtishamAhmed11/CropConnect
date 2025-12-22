@@ -4,6 +4,24 @@ import District from "../models/district.model.js";
 import CropType from "../models/cropType.model.js";
 import ApiResponse from "../utils/apiResponse.js";
 import { calculateGrowthRate } from "../utils/calculations.js";
+
+/**
+ * @desc    Get all crop types
+ * @route   GET /api/production/crop-types
+ * @access  Public
+ */
+export const getCropTypes = async (req, res, next) => {
+  try {
+    const crops = await CropType.find({}).sort({ name: 1 }).lean();
+    return res.status(200).json({
+      success: true,
+      data: crops,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getProductionData = async (req, res, next) => {
   try {
     const {
@@ -108,13 +126,13 @@ export const getProductionSummary = async (req, res, next) => {
       summary.length > 0
         ? summary[0]
         : {
-            totalProduction: 0,
-            totalArea: 0,
-            avgYield: 0,
-            recordCount: 0,
-            minProduction: 0,
-            maxProduction: 0,
-          };
+          totalProduction: 0,
+          totalArea: 0,
+          avgYield: 0,
+          recordCount: 0,
+          minProduction: 0,
+          maxProduction: 0,
+        };
 
     // Remove _id field
     delete result._id;

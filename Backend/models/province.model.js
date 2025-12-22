@@ -52,7 +52,7 @@ const provinceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-provinceSchema.index({ code: 1 });
+
 const Province = mongoose.model("Province", provinceSchema);
 
 export default Province;

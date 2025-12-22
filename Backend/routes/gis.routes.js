@@ -12,6 +12,8 @@ import {
   getRegionsNearby,
   getProvincesGeoJSON,
   getDistrictsGeoJSON,
+  getRoute,
+  getOptimizedRoutes,
 } from "../controllers/gis.controller.js";
 
 // All routes are public (no authentication required for map data)
@@ -29,6 +31,10 @@ router.get("/production-heatmap", getProductionHeatmap);
 
 // Proximity and spatial queries
 router.get("/regions-nearby", getRegionsNearby);
+router.get("/routes", getRoute);
+
+// Optimized distribution routes (with toll costs)
+router.get("/optimize-routes", getOptimizedRoutes);
 
 // GeoJSON endpoints
 router.get("/geojson/provinces", getProvincesGeoJSON);

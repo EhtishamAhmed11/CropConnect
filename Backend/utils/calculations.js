@@ -78,6 +78,30 @@ const calculateYield = (production, area) => {
  * @param {String} crop - Crop name
  * @returns {Array} Array of recommendation strings
  */
+/**
+ * Calculate distance between two coordinates using Haversine formula
+ * @param {Array} coord1 - [lat, lng]
+ * @param {Array} coord2 - [lat, lng]
+ * @returns {Number} Distance in kilometers
+ */
+export const calculateDistance = (coord1, coord2) => {
+  if (!coord1 || !coord2 || coord1.length < 2 || coord2.length < 2) return null;
+
+  const toRad = (val) => (val * Math.PI) / 180;
+  const R = 6371; // Radius of Earth in km
+
+  const dLat = toRad(coord2[0] - coord1[0]);
+  const dLon = toRad(coord2[1] - coord1[1]);
+  const lat1 = toRad(coord1[0]);
+  const lat2 = toRad(coord2[0]);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+};
+
 export const generateRecommendations = (severity, region, crop) => {
   const recommendations = [];
 
@@ -108,4 +132,5 @@ export default {
   calculateGrowthRate,
   calculateYield,
   generateRecommendations,
+  calculateDistance,
 };

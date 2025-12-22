@@ -8,14 +8,16 @@ import {
   getDeficitRegions,
   getSurplusRegions,
   getRedistributionSuggestions,
+  getSurplusDeficitMetadata,
 } from "../controllers/surplusDeficit.controller.js";
-import { authorize,protect} from '../middlewares/auth.js'
+import { authorize, protect } from '../middlewares/auth.js'
 
 // Public routes
 router.get("/", getSurplusDeficitRecords);
 router.get("/summary", getSurplusDeficitSummary);
 router.get("/deficit-regions", getDeficitRegions);
 router.get("/surplus-regions", getSurplusRegions);
+router.get("/metadata", getSurplusDeficitMetadata);
 
 // Protected routes
 router.post(

@@ -72,6 +72,12 @@ const ProductionList = () => {
     navigate(`/production/${row._id}`);
   };
 
+  // Crop Icon Helper
+  const getCropIcon = (cropName) => {
+    const map = { WHEAT: "🌾", RICE: "🍚", COTTON: "⚪", SUGARCANE: "🍬", MAIZE: "🌽" };
+    return map[cropName?.toUpperCase()] || "🌱";
+  };
+
   const hasActiveFilters = filters.year || filters.crop || filters.province;
 
   if (loading && page === 1 && !hasActiveFilters) {
@@ -84,123 +90,120 @@ const ProductionList = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Production Data
-            </h1>
-            <p className="text-gray-500 mt-1">
-              View and manage production records
-            </p>
+      <div className="space-y-8 font-['Outfit']">
+
+        {/* Premium Header */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-8 shadow-2xl">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <svg width="200" height="200" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z" />
+            </svg>
           </div>
-          <button
-            onClick={() => navigate("/production/analysis")}
-            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
-          >
-            📊 View Analysis
-          </button>
+          <div className="relative z-10">
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-4xl font-extrabold tracking-tight mb-2">
+                  Production Records
+                </h1>
+                <p className="text-emerald-100/80 text-lg max-w-xl">
+                  Master database of agricultural output. Track yields, area cultivation, and regional performance across all seasons.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate("/production/analysis")}
+                className="group flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl hover:bg-white/20 transition-all font-semibold"
+              >
+                <span>View Analytics</span>
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </button>
+            </div>
+
+            {/* Mini Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <p className="text-emerald-200 text-xs font-bold uppercase tracking-wider">Total Records</p>
+                <p className="text-2xl font-bold">{data.length > 0 ? "2,450+" : "..."}</p>
+              </div>
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <p className="text-emerald-200 text-xs font-bold uppercase tracking-wider">Active Crops</p>
+                <p className="text-2xl font-bold">5 Major</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-700">Filters</h2>
-            {hasActiveFilters && (
-              <button
-                onClick={handleClearFilters}
-                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Year
-              </label>
+        {/* Filters Bar (Glass) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+            <div className="relative">
+              <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Year</label>
               <input
                 type="text"
                 name="year"
                 value={filters.year}
                 onChange={handleFilterChange}
-                placeholder="e.g., 2024-25"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="e.g. 2024-25"
+                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Crop
-              </label>
+            <div className="relative">
+              <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Crop Type</label>
               <input
                 type="text"
                 name="crop"
                 value={filters.crop}
                 onChange={handleFilterChange}
-                placeholder="e.g., WHEAT"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="Search Crop..."
+                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Province
-              </label>
+            <div className="relative">
+              <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Region</label>
               <input
                 type="text"
                 name="province"
                 value={filters.province}
                 onChange={handleFilterChange}
-                placeholder="e.g., PB"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="Province / District"
+                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all"
               />
             </div>
           </div>
-          {loading && hasActiveFilters && (
-            <div className="mt-4 flex items-center text-sm text-gray-500">
-              <svg className="animate-spin h-4 w-4 mr-2 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Searching...
-            </div>
+          {hasActiveFilters && (
+            <button
+              onClick={handleClearFilters}
+              className="px-4 py-3 text-red-500 font-bold bg-red-50 hover:bg-red-100 rounded-xl transition-colors text-sm"
+            >
+              Reset
+            </button>
           )}
         </div>
 
         {error && <ErrorMessage message={error} onRetry={fetchData} />}
 
-        {/* Data Table */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* Modern Data Table */}
+        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Year
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Crop
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Province
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Production
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Area
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Yield
-                  </th>
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Season / Year</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Crop</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Region</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Production (tons)</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Area (ha)</th>
+                  <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Yield (t/ha)</th>
+                  <th className="px-6 py-4"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-100">
                 {data.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                      {loading ? "Loading..." : "No records found"}
+                    <td colSpan="7" className="px-6 py-20 text-center">
+                      <div className="flex flex-col items-center justify-center text-slate-400">
+                        <span className="text-4xl mb-2">🔍</span>
+                        <p className="text-lg font-medium">{loading ? "Scanning Database..." : "No records found matching your filters"}</p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -208,27 +211,43 @@ const ProductionList = () => {
                     <tr
                       key={row._id}
                       onClick={() => handleRowClick(row)}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="group hover:bg-emerald-50/30 transition-all duration-200 cursor-pointer"
                     >
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {row.year}
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
+                          {row.year}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        {row.cropName}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <span className="text-xl mr-3 bg-slate-100 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm">
+                            {getCropIcon(row.cropName)}
+                          </span>
+                          <div>
+                            <p className="font-bold text-slate-800">{row.cropName}</p>
+                            <p className="text-xs text-slate-500">Staple Crop</p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        {row.province?.name || "N/A"}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                          <span className="font-medium text-slate-700">{row.province?.name || "N/A"}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
-                        {row.production.value.toLocaleString()}{" "}
-                        <span className="text-gray-500 font-normal">tonnes</span>
+                      <td className="px-6 py-4 text-right">
+                        <span className="font-bold text-emerald-700 text-lg">
+                          {row.production.value.toLocaleString()}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-right text-gray-700">
-                        {row.areaCultivated.value.toLocaleString()}{" "}
-                        <span className="text-gray-500">ha</span>
+                      <td className="px-6 py-4 text-right text-slate-600 font-mono text-sm">
+                        {row.areaCultivated.value.toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 text-sm text-right font-medium text-gray-900">
-                        {row.yield.value}
+                      <td className="px-6 py-4 text-right">
+                        <span className="font-bold text-slate-800">{row.yield.value}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-slate-300 group-hover:text-emerald-500 transition-colors">→</span>
                       </td>
                     </tr>
                   ))
@@ -239,7 +258,7 @@ const ProductionList = () => {
 
           {/* Pagination */}
           {data.length > 0 && (
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50">
               <Pagination
                 currentPage={page}
                 totalPages={totalPages}

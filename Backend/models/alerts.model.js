@@ -25,6 +25,9 @@ const AlertSchema = new mongoose.Schema({
       "data_ingestion_failure",
       "system_health",
       "threshold_breach",
+      "weather_alert",
+      "price_alert",
+      "toll_alert",
       "custom",
     ],
     required: true,
@@ -138,7 +141,7 @@ const AlertSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-AlertSchema.index({ alertId: 1 });
+
 AlertSchema.index({ alertType: 1, severity: 1 });
 AlertSchema.index({ status: 1 });
 AlertSchema.index({ targetRoles: 1 });

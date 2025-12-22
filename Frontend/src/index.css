@@ -1,2 +1,58 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  
+  --color-glass-light: rgba(255, 255, 255, 0.85);
+  --color-glass-dark: rgba(15, 23, 42, 0.82);
+  
+  --shadow-premium: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* Premium Glass Containers */
+  .glass-panel {
+    @apply backdrop-blur-xl bg-white/80 border border-white/40 shadow-xl;
+  }
+
+  .glass-panel-dark {
+    @apply backdrop-blur-xl bg-slate-900/80 border border-white/10 shadow-2xl text-white;
+  }
+
+  /* Interactive Elements */
+  .interactive-premium {
+    @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 active:scale-[0.98];
+  }
+
+  /* Universal Cards */
+  .premium-card {
+    @apply rounded-[2rem] p-8 backdrop-blur-xl bg-white/80 border border-white/40 shadow-xl border-slate-100 shadow-premium;
+  }
+
+  .premium-card-dark {
+    @apply rounded-[2rem] p-8 backdrop-blur-xl bg-slate-900/80 border border-white/10 shadow-2xl text-white;
+  }
+  
+  /* Scrollbar customization for a cleaner look */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-300;
+  }
+}
+

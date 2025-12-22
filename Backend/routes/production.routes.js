@@ -2,6 +2,7 @@ import express from "express";
 import {
   createProductionData,
   deleteProductionData,
+  getCropTypes,
   getProductionByCrop,
   getProductionById,
   getProductionByProvince,
@@ -20,6 +21,7 @@ router.get("/trends", getProductionTrends);
 router.get("/by-crop", getProductionByCrop);
 router.get("/by-province", getProductionByProvince);
 router.get("/top-districts", getTopDistricts);
+router.get("/crop-types", getCropTypes);
 router.get("/:id", getProductionById);
 
 // Protected routes (Admin only)

@@ -104,7 +104,7 @@ const DataIngestionLogSchema = new mongoose.Schema({
   },
 });
 
-DataIngestionLogSchema.index({ ingestionId: 1 });
+
 DataIngestionLogSchema.index({ status: 1 });
 DataIngestionLogSchema.index({ sourceType: 1 });
 DataIngestionLogSchema.index({ createdAt: -1 });

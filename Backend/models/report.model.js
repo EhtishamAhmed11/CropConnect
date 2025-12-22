@@ -92,7 +92,7 @@ const ReportSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-ReportSchema.index({ reportId: 1 });
+
 ReportSchema.index({ generatedBy: 1 });
 ReportSchema.index({ reportType: 1 });
 ReportSchema.index({ status: 1 });

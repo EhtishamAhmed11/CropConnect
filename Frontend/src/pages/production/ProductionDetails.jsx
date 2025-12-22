@@ -61,344 +61,208 @@ const ProductionDetails = () => {
   if (!data) {
     return (
       <Layout>
-        <div className="text-center py-12">
-          <span className="text-6xl mb-4 block">🚫</span>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">
-            Record Not Found
-          </h3>
-          <p className="text-gray-500 mb-6">
-            The production record you're looking for doesn't exist
-          </p>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 bg-slate-50 font-['Outfit'] rounded-3xl border-2 border-dashed border-slate-200">
+          <div className="text-6xl mb-6 opacity-80">🚫</div>
+          <h3 className="text-2xl font-bold text-slate-800 mb-2">Record Not Found</h3>
+          <p className="text-slate-500 mb-8 max-w-md text-center">The production record you requested likely does not exist or has been removed.</p>
           <button
             onClick={() => navigate("/production")}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-200"
           >
-            Back to List
+            Return to Database
           </button>
         </div>
       </Layout>
     );
   }
 
-  // Prepare data for visualizations
-  const metricsData = [
-    {
-      name: "Production",
-      value: data.production.value,
-      fill: "#10b981",
-    },
-    {
-      name: "Area",
-      value: data.areaCultivated.value,
-      fill: "#3b82f6",
-    },
-  ];
+  const reliabilityScore = { high: 95, medium: 70, low: 40 }[data.reliability] || 50;
 
-  const reliabilityScore =
-    {
-      high: 95,
-      medium: 70,
-      low: 40,
-    }[data.reliability] || 50;
-
-  const reliabilityData = [
-    {
-      name: "Reliability",
-      value: reliabilityScore,
-      fill:
-        reliabilityScore > 80
-          ? "#10b981"
-          : reliabilityScore > 50
-          ? "#f59e0b"
-          : "#ef4444",
-    },
-  ];
+  const getReliabilityColor = (score) => {
+    if (score >= 80) return "#10b981"; // Emerald
+    if (score >= 50) return "#f59e0b"; // Amber
+    return "#ef4444"; // Red
+  };
 
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Production Details
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Detailed view of production record
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate("/production")}
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              ← Back
-            </button>
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-            >
-              🗑️ Delete
-            </button>
-          </div>
-        </div>
+      <div className="space-y-8 font-['Outfit']">
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Basic Info */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information Card */}
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span>📋</span>
-                Basic Information
-              </h2>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
-                    Year
-                  </p>
-                  <p className="text-lg font-bold text-gray-900">{data.year}</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
-                    Crop
-                  </p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {data.cropName}
-                  </p>
-                  <p className="text-sm text-gray-600">({data.cropCode})</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
-                    Level
-                  </p>
-                  <p className="text-lg font-bold text-gray-900 capitalize">
-                    {data.level}
-                  </p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
-                    Province
-                  </p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {data.province?.name || "N/A"}
-                  </p>
-                </div>
+        {/* Hero Header */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 text-white p-10 shadow-2xl">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <span className="text-9xl">📝</span>
+          </div>
+
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <button onClick={() => navigate("/production")} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white/70 hover:text-white">
+                  ← Back
+                </button>
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+                  {data.year} season
+                </span>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">
+                {data.cropName} Production
+              </h1>
+              <div className="flex items-center gap-4 text-slate-300 text-lg">
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  {data.province?.name || "Unknown Province"}
+                </span>
                 {data.district && (
-                  <div className="p-4 bg-gray-50 rounded-lg col-span-2">
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
-                      District
-                    </p>
-                    <p className="text-lg font-bold text-gray-900">
-                      {data.district.name}
-                    </p>
-                  </div>
+                  <span className="flex items-center gap-2">
+                    <span className="w-1 h-1 rounded-full bg-slate-500"></span>
+                    {data.district.name}
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Production Metrics Card */}
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span>📊</span>
-                Production Metrics
-              </h2>
-              <div className="grid grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-xl border border-emerald-200">
-                  <div className="w-12 h-12 bg-emerald-500 rounded-lg flex items-center justify-center text-2xl mb-3">
-                    🌾
-                  </div>
-                  <p className="text-xs text-emerald-700 font-medium uppercase tracking-wide mb-1">
-                    Production
-                  </p>
-                  <p className="text-2xl font-bold text-emerald-900">
-                    {data.production.value.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-emerald-600 mt-1">
-                    {data.production.unit}
-                  </p>
-                </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDelete}
+                className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-200 rounded-xl font-bold transition-all flex items-center gap-2 group"
+              >
+                <span className="group-hover:scale-110 transition-transform">🗑️</span> Delete Record
+              </button>
+              <button className="px-6 py-3 bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2">
+                <span>✏️</span> Edit
+              </button>
+            </div>
+          </div>
+        </div>
 
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200">
-                  <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center text-2xl mb-3">
-                    📐
-                  </div>
-                  <p className="text-xs text-blue-700 font-medium uppercase tracking-wide mb-1">
-                    Area Cultivated
-                  </p>
-                  <p className="text-2xl font-bold text-blue-900">
-                    {data.areaCultivated.value.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-blue-600 mt-1">
-                    {data.areaCultivated.unit}
-                  </p>
-                </div>
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200">
-                  <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center text-2xl mb-3">
-                    📈
-                  </div>
-                  <p className="text-xs text-purple-700 font-medium uppercase tracking-wide mb-1">
-                    Yield
-                  </p>
-                  <p className="text-2xl font-bold text-purple-900">
-                    {data.yield.value}
-                  </p>
-                  <p className="text-sm text-purple-600 mt-1">
-                    {data.yield.unit}
-                  </p>
+          {/* Left Col: Key Metrics */}
+          <div className="lg:col-span-2 space-y-8">
+
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Production Card */}
+              <div className="bg-white p-6 rounded-2xl shadow-lg shadow-slate-100 border border-emerald-100 relative overflow-hidden group">
+                <div className="absolute right-0 top-0 w-20 h-20 bg-emerald-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <p className="text-emerald-600 font-bold text-xs uppercase tracking-wider mb-2">Total Output</p>
+                <div className="flex items-baseline gap-1 relative z-10">
+                  <span className="text-3xl font-extrabold text-slate-800">{data.production.value.toLocaleString()}</span>
+                  <span className="text-sm text-slate-400 font-medium">tons</span>
                 </div>
               </div>
 
-              {/* Production vs Area Chart */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                  Production vs Area Comparison
-                </h3>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={metricsData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {metricsData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+              {/* Area Card */}
+              <div className="bg-white p-6 rounded-2xl shadow-lg shadow-slate-100 border border-blue-100 relative overflow-hidden group">
+                <div className="absolute right-0 top-0 w-20 h-20 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <p className="text-blue-600 font-bold text-xs uppercase tracking-wider mb-2">Land Usage</p>
+                <div className="flex items-baseline gap-1 relative z-10">
+                  <span className="text-3xl font-extrabold text-slate-800">{data.areaCultivated.value.toLocaleString()}</span>
+                  <span className="text-sm text-slate-400 font-medium">ha</span>
+                </div>
+              </div>
+
+              {/* Yield Card */}
+              <div className="bg-white p-6 rounded-2xl shadow-lg shadow-slate-100 border border-purple-100 relative overflow-hidden group">
+                <div className="absolute right-0 top-0 w-20 h-20 bg-purple-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <p className="text-purple-600 font-bold text-xs uppercase tracking-wider mb-2">Efficiency</p>
+                <div className="flex items-baseline gap-1 relative z-10">
+                  <span className="text-3xl font-extrabold text-slate-800">{data.yield.value}</span>
+                  <span className="text-sm text-slate-400 font-medium">t/ha</span>
+                </div>
               </div>
             </div>
 
-            {/* Notes */}
+            {/* Detailed Info Panel */}
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
+              <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <span className="p-2 bg-indigo-50 rounded-lg text-indigo-600">📋</span>
+                Specification Data
+              </h2>
+              <div className="grid grid-cols-2 gap-y-6 gap-x-12">
+                <div className="border-b border-slate-100 pb-4">
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Crop Variety Code</p>
+                  <p className="text-lg font-semibold text-slate-800 font-mono">{data.cropCode}</p>
+                </div>
+                <div className="border-b border-slate-100 pb-4">
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Reporting Level</p>
+                  <p className="text-lg font-semibold text-slate-800 capitalize">{data.level}</p>
+                </div>
+                <div className="border-b border-slate-100 pb-4">
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Data Source</p>
+                  <p className="text-lg font-semibold text-slate-800">{data.dataSource}</p>
+                </div>
+                <div className="border-b border-slate-100 pb-4">
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Record ID</p>
+                  <p className="text-sm font-mono text-slate-500 break-all">{id}</p>
+                </div>
+              </div>
+            </div>
+
             {data.notes && (
-              <div className="bg-amber-50 rounded-xl p-6 border border-amber-200">
-                <h2 className="text-lg font-bold text-amber-900 mb-3 flex items-center gap-2">
-                  <span>📝</span>
-                  Notes
-                </h2>
-                <p className="text-gray-700 leading-relaxed">{data.notes}</p>
+              <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
+                <h3 className="text-amber-800 font-bold mb-2 flex items-center gap-2">
+                  <span>📝</span> Field Notes
+                </h3>
+                <p className="text-amber-900/80 leading-relaxed font-medium">
+                  {data.notes}
+                </p>
               </div>
             )}
           </div>
 
-          {/* Right Column - Data Quality & Source */}
+          {/* Right Col: Reliability & Analysis */}
           <div className="space-y-6">
-            {/* Data Quality Card */}
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span>✓</span>
-                Data Quality
-              </h2>
 
-              <div className="space-y-6">
-                {/* Reliability Score */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-700">
-                      Reliability Score
-                    </span>
-                    <span className="text-2xl font-bold text-gray-900">
-                      {reliabilityScore}%
-                    </span>
-                  </div>
-                  <ResponsiveContainer width="100%" height={120}>
-                    <RadialBarChart
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="60%"
-                      outerRadius="100%"
-                      barSize={15}
-                      data={reliabilityData}
-                      startAngle={180}
-                      endAngle={0}
-                    >
-                      <RadialBar
-                        dataKey="value"
-                        cornerRadius={10}
-                        fill={reliabilityData[0].fill}
-                      />
-                    </RadialBarChart>
-                  </ResponsiveContainer>
-                  <div className="mt-3 text-center">
-                    <span
-                      className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${
-                        data.reliability === "high"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : data.reliability === "medium"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {data.reliability.toUpperCase()} Reliability
-                    </span>
-                  </div>
+            {/* Data Quality Widget */}
+            <div className="bg-white rounded-3xl p-8 shadow-lg shadow-emerald-50 border border-emerald-100 text-center">
+              <h2 className="text-lg font-bold text-slate-800 mb-6">Data Reliability</h2>
+              <div className="relative w-40 h-40 mx-auto mb-4">
+                {/* Simple CSS Ring Chart fallback if Recharts is overkill or buggy in mini-view */}
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle cx="80" cy="80" r="70" stroke="#f1f5f9" strokeWidth="12" fill="none" />
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="70"
+                    stroke={getReliabilityColor(reliabilityScore)}
+                    strokeWidth="12"
+                    fill="none"
+                    strokeDasharray={440}
+                    strokeDashoffset={440 - (440 * reliabilityScore) / 100}
+                    className="transition-all duration-1000 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-3xl font-extrabold text-slate-800">{reliabilityScore}%</span>
                 </div>
+              </div>
+              <div className={`inline-block px-4 py-2 rounded-xl text-sm font-bold ${data.reliability === 'high' ? 'bg-emerald-100 text-emerald-700' :
+                  data.reliability === 'medium' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                }`}>
+                {data.reliability.toUpperCase()} Confidence
+              </div>
+            </div>
 
-                {/* Data Source */}
-                <div className="pt-6 border-t border-gray-200">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2">
-                    Data Source
-                  </p>
-                  <p className="text-base font-semibold text-gray-900">
-                    {data.dataSource}
-                  </p>
+            {/* Timestamps */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Audit Trail</p>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500">Created At</span>
+                  <span className="font-mono text-slate-700">{new Date(data.createdAt).toLocaleDateString()}</span>
                 </div>
-
-                {/* Timestamps */}
-                <div className="pt-6 border-t border-gray-200 space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
-                      Created
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      {new Date(data.createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
-                      Last Updated
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      {new Date(data.updatedAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500">Last Updated</span>
+                  <span className="font-mono text-slate-700">{new Date(data.updatedAt).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-6 text-white">
-              <h3 className="text-lg font-bold mb-3">Quick Actions</h3>
-              <div className="space-y-2">
-                <button className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-3 rounded-lg text-left transition-all">
-                  📊 View Regional Comparison
-                </button>
-                <button className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-3 rounded-lg text-left transition-all">
-                  📈 Analyze Trends
-                </button>
-                <button className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-3 rounded-lg text-left transition-all">
-                  📄 Generate Report
-                </button>
-              </div>
-            </div>
           </div>
         </div>
+
       </div>
     </Layout>
   );

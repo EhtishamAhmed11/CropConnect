@@ -40,7 +40,7 @@ const DistrictSchema = new mongoose.Schema(
         enum: ["Polygon", "MultiPolygon"],
         default: "Polygon",
       },
-      coordinates: [[[Number]]],
+      coordinates: mongoose.Schema.Types.Mixed, // Use Mixed to handle both Polygon and MultiPolygon
     },
 
     // Agricultural classification

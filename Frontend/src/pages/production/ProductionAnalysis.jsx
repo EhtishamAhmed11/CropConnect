@@ -104,207 +104,166 @@ const ProductionAnalysis = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8 font-['Outfit']">
+
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <p className="text-emerald-600 font-bold uppercase tracking-wider text-sm mb-1">Intelligence Module</p>
+            <h1 className="text-4xl font-extrabold text-slate-800">
               Production Analysis
             </h1>
-            <p className="text-gray-500 mt-1">
-              Comprehensive production insights and trends
-            </p>
           </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-700">Filters</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-1 flex items-center">
+            <input
+              type="text"
+              placeholder="Filter by Crop (e.g. WHEAT)..."
+              value={filters.crop}
+              onChange={(e) => setFilters({ ...filters, crop: e.target.value.toUpperCase() })}
+              className="border-none bg-transparent focus:ring-0 text-sm font-semibold text-slate-700 px-4 w-64"
+            />
             {hasActiveFilter && (
-              <button
-                onClick={handleClearFilters}
-                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-              >
-                Clear filters
+              <button onClick={handleClearFilters} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors">
+                ✕
               </button>
             )}
+            {isSearching && <div className="animate-spin h-4 w-4 border-2 border-emerald-500 border-t-transparent rounded-full mr-3"></div>}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* <Select
-              label="Year"
-              name="year"
-              value={filters.year}
-              onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-              options={[
-                { value: "2024-25", label: "2024-25" },
-                { value: "2023-24", label: "2023-24" },
-                { value: "2022-23", label: "2022-23" },
-              ]}
-            /> */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Crop Code (optional)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., WHEAT, RICE"
-                value={filters.crop}
-                onChange={(e) =>
-                  setFilters({ ...filters, crop: e.target.value.toUpperCase() })
-                }
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-              />
-            </div>
-          </div>
-          {isSearching && (
-            <div className="mt-4 flex items-center text-sm text-gray-500">
-              <svg
-                className="animate-spin h-4 w-4 mr-2 text-emerald-600"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Updating analysis...
-            </div>
-          )}
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards Grid */}
         {summary && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-6 border border-emerald-200">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12  rounded-lg flex items-center justify-center text-2xl">
-                  🌾
-                </div>
-                <span className="text-xs font-semibold px-2 py-1 bg-emerald-200 text-emerald-700 rounded-full">
-                  Total
-                </span>
+            <div className="group bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-24 h-24 bg-emerald-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
+              <div className="relative z-10">
+                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">🌾</div>
+                <p className="text-slate-500 text-sm font-medium">Total Production</p>
+                <p className="text-3xl font-extrabold text-slate-800 mt-1">
+                  {summary.totalProduction ? (summary.totalProduction / 1000000).toFixed(2) : 0}M
+                  <span className="text-sm font-normal text-slate-400 ml-1">tons</span>
+                </p>
               </div>
-              <p className="text-sm text-emerald-700 font-medium mb-1">
-                Total Production
-              </p>
-              <p className="text-3xl font-bold text-emerald-900">
-                {summary.totalProduction.toLocaleString()}
-              </p>
-              <p className="text-sm text-emerald-600 mt-1">tonnes</p>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12  rounded-lg flex items-center justify-center text-2xl">
-                  📐
-                </div>
+            <div className="group bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-24 h-24 bg-blue-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
+              <div className="relative z-10">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">📐</div>
+                <p className="text-slate-500 text-sm font-medium">Cultivated Area</p>
+                <p className="text-3xl font-extrabold text-slate-800 mt-1">
+                  {summary.totalArea ? (summary.totalArea / 1000000).toFixed(2) : 0}M
+                  <span className="text-sm font-normal text-slate-400 ml-1">ha</span>
+                </p>
               </div>
-              <p className="text-sm text-blue-700 font-medium mb-1">
-                Total Area
-              </p>
-              <p className="text-3xl font-bold text-blue-900">
-                {summary.totalArea.toLocaleString()}
-              </p>
-              <p className="text-sm text-blue-600 mt-1">hectares</p>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12  rounded-lg flex items-center justify-center text-2xl">
-                  📊
-                </div>
+            <div className="group bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-24 h-24 bg-purple-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
+              <div className="relative z-10">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">📊</div>
+                <p className="text-slate-500 text-sm font-medium">Average Yield</p>
+                <p className="text-3xl font-extrabold text-slate-800 mt-1">
+                  {summary.avgYield.toFixed(2)}
+                  <span className="text-sm font-normal text-slate-400 ml-1">t/ha</span>
+                </p>
               </div>
-              <p className="text-sm text-purple-700 font-medium mb-1">
-                Average Yield
-              </p>
-              <p className="text-3xl font-bold text-purple-900">
-                {summary.avgYield.toFixed(2)}
-              </p>
-              <p className="text-sm text-purple-600 mt-1">tonnes/hectare</p>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12  rounded-lg flex items-center justify-center text-2xl">
-                  📋
-                </div>
+            <div className="group bg-white p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-24 h-24 bg-orange-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
+              <div className="relative z-10">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">📋</div>
+                <p className="text-slate-500 text-sm font-medium">Data Points</p>
+                <p className="text-3xl font-extrabold text-slate-800 mt-1">
+                  {summary.recordCount.toLocaleString()}
+                </p>
               </div>
-              <p className="text-sm text-orange-700 font-medium mb-1">
-                Total Records
-              </p>
-              <p className="text-3xl font-bold text-orange-900">
-                {summary.recordCount}
-              </p>
-              <p className="text-sm text-orange-600 mt-1">data points</p>
             </div>
           </div>
         )}
 
         {/* Charts Section */}
         {trends.length > 0 ? (
-          <div className="space-y-6">
-            {/* Production Trend - Area Chart */}
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">
-                Production Trend Over Time
-              </h2>
-              <ResponsiveContainer width="100%" height={300}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            {/* Primary Chart */}
+            <div className="bg-white rounded-3xl p-8 shadow-lg shadow-slate-100 border border-slate-100 col-span-1 lg:col-span-2 overflow-hidden">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">
+                    Historical Performance
+                  </h2>
+                  <p className="text-slate-500">Year-over-year production volume analysis</p>
+                </div>
+                <div className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-wide">
+                  Trend Analysis
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
                 <AreaChart data={trends}>
                   <defs>
-                    <linearGradient
-                      id="colorProduction"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    <linearGradient id="colorProduction" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#059669" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#059669" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="year" stroke="#6b7280" />
-                  <YAxis stroke="#6b7280" />
-                  <Tooltip content={<CustomTooltip />} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis
+                    dataKey="year"
+                    stroke="#94a3b8"
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    dy={10}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    dx={-10}
+                    tickFormatter={(value) => `${(value / 1000)}k`}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#059669', strokeWidth: 1, strokeDasharray: '5 5' }} />
                   <Area
                     type="monotone"
                     dataKey="production"
-                    stroke="#10b981"
+                    stroke="#059669"
+                    strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorProduction)"
+                    activeDot={{ r: 6, stroke: 'white', strokeWidth: 4 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
 
-            {/* Growth Rate - Bar Chart */}
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">
-                Growth Rate Analysis
-              </h2>
+            {/* Secondary Chart: Growth */}
+            <div className="bg-white rounded-3xl p-8 shadow-lg shadow-slate-100 border border-slate-100">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-slate-800">Growth Velocity</h2>
+                <p className="text-slate-500 text-sm">Percentage change from previous season</p>
+              </div>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={trends}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="year" stroke="#6b7280" />
-                  <YAxis stroke="#6b7280" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis
+                    dataKey="year"
+                    stroke="#94a3b8"
+                    tick={{ fill: '#64748b', fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    dy={10}
+                  />
+                  <YAxis hide />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="growthRate" radius={[8, 8, 0, 0]}>
+                  <Bar dataKey="growthRate" radius={[4, 4, 4, 4]} barSize={40}>
                     {trends.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={entry.growthRate >= 0 ? "#10b981" : "#ef4444"}
+                        fill={entry.growthRate >= 0 ? "#10b981" : "#f43f5e"}
+                        fillOpacity={0.8}
                       />
                     ))}
                   </Bar>
@@ -312,55 +271,28 @@ const ProductionAnalysis = () => {
               </ResponsiveContainer>
             </div>
 
-            {/* Data Table */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Detailed Trend Data
-                </h2>
+            {/* Data Table Widget */}
+            <div className="bg-white rounded-3xl p-8 shadow-lg shadow-slate-100 border border-slate-100 overflow-hidden flex flex-col">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-slate-800">Key Metrics</h2>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
+              <div className="overflow-y-auto flex-1 pr-2">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Year
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Crop
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Production
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Growth Rate
-                      </th>
+                      <th className="px-4 py-3 text-left rounded-l-lg">Year</th>
+                      <th className="px-4 py-3 text-right">Vol (t)</th>
+                      <th className="px-4 py-3 text-right rounded-r-lg">Growth</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-slate-100">
                     {trends.map((item, idx) => (
-                      <tr
-                        key={idx}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                          {item.year}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {item.crop}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
-                          {item.production.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-right">
-                          <span
-                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold ${item.growthRate >= 0
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-red-100 text-red-700"
-                              }`}
-                          >
-                            {item.growthRate >= 0 ? "↑" : "↓"}{" "}
-                            {Math.abs(item.growthRate)}%
+                      <tr key={idx} className="hover:bg-slate-50/50">
+                        <td className="px-4 py-3 font-medium text-slate-700">{item.year}</td>
+                        <td className="px-4 py-3 text-right font-mono text-slate-600">{item.production.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${item.growthRate >= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                            {item.growthRate}%
                           </span>
                         </td>
                       </tr>
@@ -371,15 +303,13 @@ const ProductionAnalysis = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
-            <span className="text-6xl mb-4 block">📊</span>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">
-              No Trend Data Available
+          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center">
+            <span className="text-6xl mb-4 block opacity-50">📊</span>
+            <h3 className="text-xl font-bold text-slate-700 mb-2">
+              Waiting for Input
             </h3>
-            <p className="text-gray-500">
-              {loading
-                ? "Loading data..."
-                : "Select different filters to view production trends"}
+            <p className="text-slate-500 max-w-sm mx-auto">
+              Select key filters above to generate a comprehensive production analysis report.
             </p>
           </div>
         )}

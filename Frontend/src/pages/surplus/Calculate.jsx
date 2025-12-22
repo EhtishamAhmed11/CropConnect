@@ -1,215 +1,129 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { surplusDeficitAPI } from "../../api/surplusDeficitAPI";
 import { useAlert } from "../../context/AlertContext";
 import Layout from "../../components/layout/Layout";
-import Input from "../../components/common/Input";
 import Button from "../../components/common/Button";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
   RadialBarChart,
   RadialBar,
-  Legend,
+  ResponsiveContainer,
 } from "recharts";
+import { Scale, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 // Results Display Component
 const ResultsCard = ({ result }) => {
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "surplus":
-        return "text-emerald-600 bg-emerald-50 border-emerald-200";
-      case "deficit":
-        return "text-red-600 bg-red-50 border-red-200";
-      default:
-        return "text-gray-600 bg-gray-50 border-gray-200";
-    }
-  };
+  const isSurplus = result.status === "surplus";
+  const statusColor = isSurplus ? "text-emerald-700" : "text-red-700";
+  const bgColor = isSurplus ? "bg-emerald-50" : "bg-red-50";
+  const borderColor = isSurplus ? "border-emerald-200" : "border-red-200";
 
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case "critical":
-        return "text-red-700 bg-red-100 border-red-200";
-      case "moderate":
-        return "text-orange-600 bg-orange-100 border-orange-200";
-      case "mild":
-        return "text-yellow-600 bg-yellow-100 border-yellow-200";
-      default:
-        return "text-gray-600 bg-gray-100 border-gray-200";
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    return status === "surplus" ? "📈" : status === "deficit" ? "📉" : "📊";
-  };
-
-  // Chart data
   const selfSufficiencyData = [
     {
       name: "Self Sufficiency",
-      value: result.selfSufficiencyRatio,
-      fill:
-        result.selfSufficiencyRatio >= 100
-          ? "#10b981"
-          : result.selfSufficiencyRatio >= 80
-          ? "#f59e0b"
-          : "#ef4444",
+      value: result.selfSufficiencyRatio > 100 ? 100 : result.selfSufficiencyRatio,
+      fill: result.selfSufficiencyRatio >= 100 ? "#10b981" : result.selfSufficiencyRatio >= 80 ? "#f59e0b" : "#ef4444",
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Status Card */}
-      <div
-        className={`p-6 rounded-xl border-2 ${getStatusColor(result.status)}`}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium opacity-75 mb-2">
-              Overall Status
-            </p>
-            <p className="text-3xl font-bold">{result.status.toUpperCase()}</p>
-          </div>
-          <span className="text-6xl">{getStatusIcon(result.status)}</span>
-        </div>
+      {/* Primary Status Card */}
+      <div className={`p-8 rounded-xl border ${borderColor} ${bgColor}`}>
+        <h2 className={`text-4xl font-bold ${statusColor} mb-2`}>
+          {result.status.toUpperCase()}
+        </h2>
+        <p className="text-slate-700 text-lg">
+          {isSurplus
+            ? 'Production exceeds local consumption requirements.'
+            : 'Local consumption exceeds available production.'}
+        </p>
       </div>
 
-      {/* Self-Sufficiency Chart */}
-      <div className="bg-white rounded-xl p-6 border border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">
-          Self-Sufficiency Ratio
-        </h3>
-        <ResponsiveContainer width="100%" height={200}>
-          <RadialBarChart
-            cx="50%"
-            cy="50%"
-            innerRadius="60%"
-            outerRadius="100%"
-            barSize={20}
-            data={selfSufficiencyData}
-            startAngle={180}
-            endAngle={0}
-          >
-            <RadialBar
-              dataKey="value"
-              cornerRadius={10}
-              fill={selfSufficiencyData[0].fill}
-            />
-            <text
-              x="50%"
-              y="50%"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="text-3xl font-bold"
-              fill="#1f2937"
-            >
-              {result.selfSufficiencyRatio}%
-            </text>
-          </RadialBarChart>
-        </ResponsiveContainer>
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200">
-          <div className="flex items-start justify-between mb-2">
-            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-xl">
-              ⚖️
+        {/* Self Sufficiency Chart */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col items-center justify-center">
+          <h3 className="text-slate-500 font-medium text-sm uppercase tracking-wide mb-4">Self-Sufficiency Ratio</h3>
+          <div className="h-48 w-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadialBarChart
+                cx="50%"
+                cy="50%"
+                innerRadius="80%"
+                outerRadius="100%"
+                barSize={15}
+                data={selfSufficiencyData}
+                startAngle={180}
+                endAngle={0}
+              >
+                <RadialBar background dataKey="value" cornerRadius={30} fill={selfSufficiencyData[0].fill} />
+              </RadialBarChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center mt-4">
+              <span className="text-4xl font-bold text-slate-800">{result.selfSufficiencyRatio}%</span>
             </div>
           </div>
-          <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">
-            Balance
-          </p>
-          <p className="text-3xl font-bold text-blue-900">
-            {result.balance.toLocaleString()}
-          </p>
-          <p className="text-sm text-blue-600 mt-1">tonnes</p>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200">
-          <div className="flex items-start justify-between mb-2">
-            <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center text-xl">
-              📊
+        {/* Key Stats */}
+        <div className="grid grid-cols-1 gap-4">
+          {/* Balance */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-blue-50 text-blue-600">
+              <Scale size={24} />
             </div>
-          </div>
-          <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-1">
-            Surplus/Deficit %
-          </p>
-          <p className="text-3xl font-bold text-purple-900">
-            {result.surplusDeficitPercentage > 0 ? "+" : ""}
-            {result.surplusDeficitPercentage}%
-          </p>
-        </div>
-      </div>
-
-      {/* Severity Badge */}
-      {result.severity !== "none" && (
-        <div
-          className={`p-6 rounded-xl border-2 ${getSeverityColor(
-            result.severity
-          )}`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="text-4xl">⚠️</div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1 opacity-75">
-                Severity Level
+              <p className="text-xs text-slate-500 font-medium uppercase mb-1">Net Balance</p>
+              <p className="text-2xl font-bold text-slate-800">
+                {result.balance.toLocaleString()} <span className="text-sm font-normal text-slate-500">tons</span>
               </p>
-              <p className="text-2xl font-bold">
-                {result.severity.toUpperCase()}
+            </div>
+          </div>
+
+          {/* Severity */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 flex items-center gap-4">
+            <div className={`p-3 rounded-lg ${result.severity === 'critical' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-500'}`}>
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium uppercase mb-1">Impact Level</p>
+              <p className={`text-2xl font-bold capitalize ${result.severity === 'critical' ? 'text-red-600' : 'text-slate-700'}`}>
+                {result.severity}
               </p>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Recommendations */}
       {result.recommendations && result.recommendations.length > 0 && (
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-200 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center text-xl flex-shrink-0">
-              💡
-            </div>
-            <div className="flex-1">
-              <p className="text-lg font-bold text-amber-900 mb-3">
-                Recommendations
-              </p>
-              <ul className="space-y-2">
-                {result.recommendations.map((rec, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-amber-600 font-bold mt-1">•</span>
-                    <span className="text-sm text-amber-800 leading-relaxed">
-                      {rec}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+        <div className="bg-slate-800 text-white rounded-xl p-8">
+          <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <CheckCircle2 size={24} className="text-indigo-400" /> Recommendations
+          </h3>
+          <ul className="space-y-4">
+            {result.recommendations.map((rec, index) => (
+              <li key={index} className="flex gap-4 items-start">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/30 text-indigo-200 flex items-center justify-center text-xs font-bold mt-1">
+                  {index + 1}
+                </span>
+                <p className="text-slate-300 leading-relaxed">{rec}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
   );
 };
 
-// Empty State Component
-const EmptyState = () => (
-  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-    <div className="text-7xl mb-4">📊</div>
-    <h3 className="text-xl font-bold text-gray-700 mb-2">No Results Yet</h3>
-    <p className="text-sm text-gray-500 max-w-sm">
-      Enter the required parameters and click Calculate to view the
-      surplus/deficit analysis.
-    </p>
-  </div>
-);
-
 const Calculate = () => {
   const { showSuccess, showError } = useAlert();
   const [loading, setLoading] = useState(false);
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [metadata, setMetadata] = useState({ years: [], crops: [], provinces: [], districts: [] });
   const [formData, setFormData] = useState({
-    year: "2024-25",
+    year: "",
     crop: "",
     province: "",
     district: "",
@@ -217,56 +131,65 @@ const Calculate = () => {
   const [result, setResult] = useState(null);
   const [errors, setErrors] = useState({});
 
+  useEffect(() => {
+    loadMetadata();
+  }, []);
+
+  const loadMetadata = async () => {
+    try {
+      const res = await surplusDeficitAPI.getMetadata();
+      if (res.data.success) {
+        const d = res.data.data;
+        setMetadata(d);
+        if (d.years.length > 0) setFormData(prev => ({ ...prev, year: d.years[0] }));
+      }
+    } catch (err) {
+      showError("Failed to load filter metadata");
+    } finally {
+      setMetaLoading(false);
+    }
+  };
+
+  const filteredDistricts = formData.province
+    ? metadata.districts.filter(d => d.province === formData.province)
+    : metadata.districts;
+
   const validateForm = () => {
     const newErrors = {};
-    const yearPattern = /^\d{4}-\d{2}$/;
-
-    if (!yearPattern.test(formData.year)) {
-      newErrors.year = "Year must be in format YYYY-YY (e.g., 2024-25)";
-    }
-    if (!formData.crop.trim()) {
-      newErrors.crop = "Crop code is required";
-    } else if (formData.crop.length < 2) {
-      newErrors.crop = "Crop code must be at least 2 characters";
-    }
-    if (formData.province && formData.province.length < 2) {
-      newErrors.province = "Province code must be at least 2 characters";
-    }
-
+    if (!formData.year) newErrors.year = "Required";
+    if (!formData.crop) newErrors.crop = "Required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value.toUpperCase() });
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: "" });
-    }
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === "province") updated.district = ""; // Reset district on province change
+      return updated;
+    });
+    if (errors[name]) setErrors({ ...errors, [name]: "" });
   };
 
   const handleClear = () => {
-    setFormData({ year: "2024-25", crop: "", province: "", district: "" });
+    setFormData({ year: metadata.years[0] || "", crop: "", province: "", district: "" });
     setResult(null);
     setErrors({});
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
-      showError("Please fix the validation errors");
-      return;
-    }
+    if (!validateForm()) return showError("Please select required parameters");
 
     setLoading(true);
     setResult(null);
-
     try {
       const response = await surplusDeficitAPI.calculate(formData);
       setResult(response.data.data);
-      showSuccess("Calculation completed successfully");
+      showSuccess("Analysis generated successfully");
     } catch (error) {
-      showError(error.response?.data?.message || "Failed to calculate");
+      showError(error.response?.data?.message || "Failed to process analysis");
     } finally {
       setLoading(false);
     }
@@ -274,125 +197,122 @@ const Calculate = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Surplus/Deficit Calculator
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Calculate crop surplus or deficit based on production and
-            consumption data
+      <div className="max-w-7xl mx-auto px-4 py-8 font-sans">
+
+        {/* Simple Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold text-slate-800">Resource Calculator</h1>
+          <p className="text-slate-600 mt-2">
+            Calculate surplus or deficit based on production and consumption data.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Input Form */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <span>⚙️</span>
-                Input Parameters
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+          {/* Form */}
+          <div className="lg:col-span-4">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b border-slate-100">
+                Configuration
               </h2>
-            </div>
 
-            <div className="p-6 space-y-4">
-              <div>
-                <Input
-                  label="Year"
-                  name="year"
-                  value={formData.year}
-                  onChange={handleChange}
-                  placeholder="YYYY-YY (e.g., 2024-25)"
-                  required
-                />
-                {errors.year && (
-                  <p className="text-red-600 text-xs mt-1">{errors.year}</p>
-                )}
-              </div>
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Fiscal Year</label>
+                  <select
+                    name="year"
+                    value={formData.year}
+                    onChange={handleChange}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  >
+                    {metadata.years.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
 
-              <div>
-                <Input
-                  label="Crop Code"
-                  name="crop"
-                  value={formData.crop}
-                  onChange={handleChange}
-                  placeholder="e.g., WHEAT, RICE"
-                  required
-                />
-                {errors.crop && (
-                  <p className="text-red-600 text-xs mt-1">{errors.crop}</p>
-                )}
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Crop Type</label>
+                  <select
+                    name="crop"
+                    value={formData.crop}
+                    onChange={handleChange}
+                    className={`w-full bg-slate-50 border ${errors.crop ? 'border-red-500' : 'border-slate-300'} rounded-lg px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+                  >
+                    <option value="">Select Crop...</option>
+                    {metadata.crops.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                  {errors.crop && <p className="text-red-500 text-xs mt-1">{errors.crop}</p>}
+                </div>
 
-              <div>
-                <Input
-                  label="Province Code"
-                  name="province"
-                  value={formData.province}
-                  onChange={handleChange}
-                  placeholder="e.g., PB, SD, KP"
-                />
-                {errors.province && (
-                  <p className="text-red-600 text-xs mt-1">{errors.province}</p>
-                )}
-                <p className="text-gray-500 text-xs mt-1">
-                  Optional: Leave blank for national level
-                </p>
-              </div>
+                <div className="pt-2 border-t border-slate-100 mt-2">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 mt-2">Region Filter</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Province (Optional)</label>
+                      <select
+                        name="province"
+                        value={formData.province}
+                        onChange={handleChange}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      >
+                        <option value="">All Provinces (National)</option>
+                        {metadata.provinces.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                      </select>
+                    </div>
 
-              <div>
-                <Input
-                  label="District Code"
-                  name="district"
-                  value={formData.district}
-                  onChange={handleChange}
-                  placeholder="e.g., LHR, KHI, ISB"
-                />
-                <p className="text-gray-500 text-xs mt-1">
-                  Optional: Requires province code
-                </p>
-              </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${!formData.province ? 'text-slate-400' : 'text-slate-700'} mb-1`}>District (Optional)</label>
+                      <select
+                        name="district"
+                        value={formData.district}
+                        onChange={handleChange}
+                        disabled={!formData.province}
+                        className={`w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all ${!formData.province ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <option value="">All Districts (Provincial)</option>
+                        {filteredDistricts.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button onClick={handleSubmit} fullWidth loading={loading}>
-                  {loading ? "Calculating..." : "Calculate"}
-                </Button>
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="px-4 py-2 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-                >
-                  Clear
-                </button>
+                <div className="pt-6 flex flex-col gap-3">
+                  <Button
+                    onClick={handleSubmit}
+                    fullWidth
+                    loading={loading}
+                    className="py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-md"
+                  >
+                    {loading ? "Calculating..." : "Run Analysis"}
+                  </Button>
+                  <button
+                    onClick={handleClear}
+                    className="text-sm text-slate-500 hover:text-slate-700 font-medium py-2"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Results Panel */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-6">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <span>📊</span>
-                Analysis Results
-              </h2>
-            </div>
-
-            <div className="p-6">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mb-4"></div>
-                  <p className="text-gray-700 font-semibold">Calculating...</p>
-                  <p className="text-gray-500 text-sm mt-1">
-                    Analyzing crop data
-                  </p>
-                </div>
-              ) : result ? (
-                <ResultsCard result={result} />
-              ) : (
-                <EmptyState />
-              )}
-            </div>
+          {/* Results */}
+          <div className="lg:col-span-8">
+            {loading ? (
+              <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-white rounded-xl border border-slate-200 shadow-sm">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
+                <p className="text-slate-500 font-medium">Processing data...</p>
+              </div>
+            ) : result ? (
+              <ResultsCard result={result} />
+            ) : (
+              <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 text-center p-8">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm border border-slate-100 mb-4">📊</div>
+                <h3 className="text-xl font-bold text-slate-700 mb-2">Ready to Analyze</h3>
+                <p className="text-slate-500 max-w-sm">
+                  Select parameters from the configuration panel to generate a new surplus/deficit report.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

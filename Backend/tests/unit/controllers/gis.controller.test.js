@@ -181,20 +181,18 @@ describe("GIS Controller", () => {
   // ------------------------- getSurplusDeficitMapData -------------------------
   describe("getSurplusDeficitMapData", () => {
     beforeEach(async () => {
-      await SurplusDeficit.create({
+      await ProductionData.create({
         year: "2024-25",
         level: "provincial",
         province: province._id,
         provinceCode: province.code,
         cropType: cropType._id,
         cropCode: cropType.code,
-        production: 20000000,
-        consumption: 15000000,
-        balance: 5000000,
-        status: "surplus",
-        surplusDeficitPercentage: 33.33,
-        selfSufficiencyRatio: 133.33,
-        severity: "none",
+        cropName: "Wheat",
+        areaCultivated: { value: 9000000, unit: "hectares" },
+        production: { value: 20000000, unit: "tonnes" },
+        yield: { value: 2.22, unit: "tonnes_per_hectare" },
+        dataSource: "PBS",
       });
     });
 
@@ -219,103 +217,104 @@ describe("GIS Controller", () => {
       );
     });
   });
-});
-// ------------------------- getRegionsNearby -------------------------
-describe("getRegionsNearby", () => {
-  it("should find regions within radius", async () => {
-    const req = createMockReq({
-      query: {
-        latitude: 31.5204, // Lahore latitude
-        longitude: 74.3587, // Lahore longitude
-        radius: 100,
-        level: "district",
-      },
+
+  // ------------------------- getRegionsNearby -------------------------
+  describe("getRegionsNearby", () => {
+    it("should find regions within radius", async () => {
+      const req = createMockReq({
+        query: {
+          latitude: 31.5204, // Lahore latitude
+          longitude: 74.3587, // Lahore longitude
+          radius: 100,
+          level: "district",
+        },
+      });
+      const res = createMockRes();
+      const next = createMockNext();
+
+      await gisController.getRegionsNearby(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      const data = res.json.mock.calls[0][0].data;
+      expect(data).toBeInstanceOf(Array);
     });
-    const res = createMockRes();
-    const next = createMockNext();
 
-    await gisController.getRegionsNearby(req, res, next);
+    it("should require latitude and longitude", async () => {
+      const req = createMockReq({ query: { radius: 100 } });
+      const res = createMockRes();
+      const next = createMockNext();
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    const data = res.json.mock.calls[0][0].data;
-    expect(data).toBeInstanceOf(Array);
+      await gisController.getRegionsNearby(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
   });
 
-  it("should require latitude and longitude", async () => {
-    const req = createMockReq({ query: { radius: 100 } });
-    const res = createMockRes();
-    const next = createMockNext();
+  // ------------------------- getProvincesGeoJSON -------------------------
+  describe("getProvincesGeoJSON", () => {
+    it("should return provinces in GeoJSON format", async () => {
+      const req = createMockReq();
+      const res = createMockRes();
+      const next = createMockNext();
 
-    await gisController.getRegionsNearby(req, res, next);
+      await gisController.getProvincesGeoJSON(req, res, next);
 
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-});
-
-// ------------------------- getProvincesGeoJSON -------------------------
-describe("getProvincesGeoJSON", () => {
-  it("should return provinces in GeoJSON format", async () => {
-    const req = createMockReq();
-    const res = createMockRes();
-    const next = createMockNext();
-
-    await gisController.getProvincesGeoJSON(req, res, next);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    const data = res.json.mock.calls[0][0].data;
-    expect(data).toHaveProperty("type", "FeatureCollection");
-    expect(data.features).toBeInstanceOf(Array);
-    expect(data.features.length).toBeGreaterThan(0);
-    expect(data.features).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          properties: expect.objectContaining({
-            code: province.code,
-            name: province.name,
+      expect(res.status).toHaveBeenCalledWith(200);
+      const data = res.json.mock.calls[0][0].data;
+      expect(data).toHaveProperty("type", "FeatureCollection");
+      expect(data.features).toBeInstanceOf(Array);
+      expect(data.features.length).toBeGreaterThan(0);
+      expect(data.features).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            properties: expect.objectContaining({
+              code: province.code,
+              name: province.name,
+            }),
           }),
-        }),
-      ])
-    );
+        ])
+      );
+    });
   });
-});
 
-// ------------------------- getDistrictsGeoJSON -------------------------
-describe("getDistrictsGeoJSON", () => {
-  it("should return districts in GeoJSON format", async () => {
-    const req = createMockReq({ query: {} });
-    const res = createMockRes();
-    const next = createMockNext();
+  // ------------------------- getDistrictsGeoJSON -------------------------
+  describe("getDistrictsGeoJSON", () => {
+    it("should return districts in GeoJSON format", async () => {
+      const req = createMockReq({ query: {} });
+      const res = createMockRes();
+      const next = createMockNext();
 
-    await gisController.getDistrictsGeoJSON(req, res, next);
+      await gisController.getDistrictsGeoJSON(req, res, next);
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    const data = res.json.mock.calls[0][0].data;
-    expect(data).toHaveProperty("type", "FeatureCollection");
-    expect(data.features).toBeInstanceOf(Array);
-    expect(data.features.length).toBeGreaterThan(0);
-    expect(data.features).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          properties: expect.objectContaining({
-            code: district.code,
-            name: district.name,
+      expect(res.status).toHaveBeenCalledWith(200);
+      const data = res.json.mock.calls[0][0].data;
+      expect(data).toHaveProperty("type", "FeatureCollection");
+      expect(data.features).toBeInstanceOf(Array);
+      expect(data.features.length).toBeGreaterThan(0);
+      expect(data.features).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            properties: expect.objectContaining({
+              code: district.code,
+              name: district.name,
+            }),
           }),
-        }),
-      ])
-    );
-  });
+        ])
+      );
+    });
 
-  it("should filter GeoJSON by province", async () => {
-    const req = createMockReq({ query: { province: province.code } });
-    const res = createMockRes();
-    const next = createMockNext();
+    it("should filter GeoJSON by province", async () => {
+      const req = createMockReq({ query: { province: province.code } });
+      const res = createMockRes();
+      const next = createMockNext();
 
-    await gisController.getDistrictsGeoJSON(req, res, next);
+      await gisController.getDistrictsGeoJSON(req, res, next);
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    const data = res.json.mock.calls[0][0].data;
-    expect(
-      data.features.every((f) => f.properties.provinceCode === province.code)
-    ).toBe(true);
+      expect(res.status).toHaveBeenCalledWith(200);
+      const data = res.json.mock.calls[0][0].data;
+      expect(
+        data.features.every((f) => f.properties.provinceCode === province.code)
+      ).toBe(true);
+    });
   });
 });
