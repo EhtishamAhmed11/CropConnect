@@ -202,9 +202,23 @@ export const getProductionSummary = async (req, res, next) => {
  * @route   GET /api/production/trends
  * @access  Public
  */
+import cache from "../services/cache.service.js";
+
+/**
+ * @desc    Get production trends over time
+ * @route   GET /api/production/trends
+ * @access  Public
+ */
 export const getProductionTrends = async (req, res, next) => {
   try {
     const { crop, province, district, level = "national" } = req.query;
+
+    // Cache check
+    const cacheKey = cache.generateKey("trends", { crop, province, district, level });
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.success(res, cachedData, "Production trends retrieved from cache");
+    }
 
     const matchStage = {};
     if (crop) matchStage.cropCode = crop.toUpperCase();
@@ -280,6 +294,10 @@ export const getProductionTrends = async (req, res, next) => {
 
       return { ...item, growthRate: 0 };
     });
+
+    // Store in cache
+    const cacheKey = cache.generateKey("trends", { crop, province, district, level });
+    cache.set(cacheKey, trendsWithGrowth);
 
     return ApiResponse.success(
       res,

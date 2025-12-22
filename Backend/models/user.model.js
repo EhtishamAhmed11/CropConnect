@@ -83,6 +83,7 @@ const UserSchema = new mongoose.Schema(
       default: 0,
     },
     lockUntil: Date,
+    refreshToken: String,
 
     // Preferences
     preferences: {

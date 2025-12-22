@@ -84,8 +84,12 @@ export const register = async (req, res, next) => {
     // TODO: Send verification email
     // await sendVerificationEmail(user.email, verificationToken);
 
-    // Generate JWT token
-    const token = generateToken(user._id);
+    // Generate JWT tokens
+    const { accessToken, refreshToken } = generateTokens(user._id);
+
+    // Save refresh token to user
+    user.refreshToken = refreshToken;
+    await user.save();
 
     // Remove password from response
     const userResponse = {
@@ -102,7 +106,8 @@ export const register = async (req, res, next) => {
       res,
       {
         user: userResponse,
-        token,
+        accessToken,
+        refreshToken,
       },
       "User registered successfully. Please check your email to verify your account."
     );
@@ -173,14 +178,15 @@ export const login = async (req, res, next) => {
       return ApiResponse.error(res, "Invalid email or password", 401);
     }
 
-    // Reset login attempts on successful login
+    // Generate JWT tokens
+    const { accessToken, refreshToken } = generateTokens(user._id);
+
+    // Save refresh token to user
+    user.refreshToken = refreshToken;
     user.loginAttempts = 0;
     user.lockUntil = undefined;
     user.lastLogin = new Date();
     await user.save();
-
-    // Generate JWT token
-    const token = generateToken(user._id);
 
     // Remove password from response
     const userResponse = {
@@ -198,7 +204,8 @@ export const login = async (req, res, next) => {
       res,
       {
         user: userResponse,
-        token,
+        accessToken,
+        refreshToken,
       },
       "Login successful"
     );
@@ -452,22 +459,32 @@ export const refreshToken = async (req, res, next) => {
       return ApiResponse.error(res, "User not found or inactive", 401);
     }
 
-    // Generate new token
-    const token = generateToken(user._id);
+    // Generate new tokens
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id);
 
-    return ApiResponse.success(res, { token }, "Token refreshed successfully");
+    // Update refresh token in DB
+    user.refreshToken = newRefreshToken;
+    await user.save();
+
+    return ApiResponse.success(res, { accessToken, refreshToken: newRefreshToken }, "Token refreshed successfully");
   } catch (error) {
     next(error);
   }
 };
 
 /**
- * Helper function to generate JWT token
+ * Helper function to generate JWT tokens
  */
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || "7d",
+const generateTokens = (userId) => {
+  const accessToken = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE || "15m",
   });
+
+  const refreshToken = jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET || "refresh_secret_key", {
+    expiresIn: process.env.JWT_REFRESH_EXPIRE || "7d",
+  });
+
+  return { accessToken, refreshToken };
 };
 
 /**

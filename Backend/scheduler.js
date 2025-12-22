@@ -6,9 +6,21 @@ import * as TollMonitorService from "./services/tollMonitor.service.js";
 import Alert from "./models/alerts.model.js";
 import MarketPrice from "./models/marketPrice.model.js";
 import User from "./models/user.model.js";
+import importAllCrops from "./scripts/import/importAll.js";
 
 const setupScheduler = () => {
     console.log("Initializing Scheduler...");
+
+    // 0. Crop Data Ingestion (PBS): Every 24 hours at 1:00 AM
+    cron.schedule("0 1 * * *", async () => {
+        console.log("[Scheduler] Starting automatic crop data ingestion (PBS)...");
+        try {
+            await importAllCrops();
+            console.log("[Scheduler] Crop data ingestion completed.");
+        } catch (error) {
+            console.error("[Scheduler] Crop data ingestion failed:", error);
+        }
+    });
 
     // 1. Weather Update: Every 4 hours (0 */4 * * *)
     cron.schedule("0 */4 * * *", async () => {

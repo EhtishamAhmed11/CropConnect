@@ -4,6 +4,8 @@ import express from "express";
 import connectDb from "./connection/db.connection.js";
 import cors from "cors";
 import errorHandler from "./middlewares/errorHandler.js";
+import auditLogger from "./middlewares/audit.js";
+import logger from "./utils/logger.js";
 import productionRoutes from "./routes/production.routes.js";
 import surplusDeficitRoutes from "./routes/surplusDeficit.routes.js";
 import reportRoutes from "./routes/report.routes.js";
@@ -40,6 +42,7 @@ app.use(
   })
 );
 app.use(express.urlencoded({ extended: true }));
+app.use(auditLogger);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/production", productionRoutes);
@@ -71,7 +74,7 @@ if (process.env.NODE_ENV !== "test") {
     // fixGeoReferences()
     // seedTollRates()
     // seed2024Data()
-    console.log("Server started on port 3000");
+    logger.info(`Server started on port ${PORT || 3000}`);
     setupScheduler();
   });
 }
