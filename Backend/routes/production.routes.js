@@ -7,6 +7,7 @@ import {
   getProductionById,
   getProductionByProvince,
   getProductionData,
+  getProductionMetadata,
   getProductionSummary,
   getProductionTrends,
   getTopDistricts,
@@ -22,6 +23,7 @@ router.get("/by-crop", getProductionByCrop);
 router.get("/by-province", getProductionByProvince);
 router.get("/top-districts", getTopDistricts);
 router.get("/crop-types", getCropTypes);
+router.get("/metadata", getProductionMetadata);
 router.get("/:id", getProductionById);
 
 // Protected routes (Admin only)

@@ -22,6 +22,33 @@ export const getCropTypes = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get production metadata (years, crops, provinces)
+ * @route   GET /api/production/metadata
+ * @access  Public
+ */
+export const getProductionMetadata = async (req, res, next) => {
+  try {
+    const [years, crops, provinces] = await Promise.all([
+      ProductionData.distinct("year"),
+      ProductionData.distinct("cropCode"),
+      ProductionData.distinct("provinceCode"),
+    ]);
+
+    return ApiResponse.success(
+      res,
+      {
+        years: years.sort().reverse(),
+        crops: crops.sort(),
+        provinces: provinces.sort(),
+      },
+      "Production metadata retrieved successfully"
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getProductionData = async (req, res, next) => {
   try {
     const {

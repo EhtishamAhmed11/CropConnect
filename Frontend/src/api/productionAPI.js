@@ -12,5 +12,6 @@ export const productionAPI = {
   getByProvince: (params) => api.get("/production/by-province", { params }),
   getTopDistricts: (params) => api.get("/production/top-districts", { params }),
   getCropTypes: () => api.get("/production/crop-types"),
+  getMetadata: () => api.get("/production/metadata"),
 };
 

@@ -84,25 +84,46 @@ const ReportList = () => {
   const { showError, showSuccess } = useAlert();
 
   const [reports, setReports] = useState([]);
+  const [filteredReports, setFilteredReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    format: 'all',
+    status: 'all'
+  });
 
   useEffect(() => {
     fetchReports();
-  }, [page]);
+  }, [page]); // Keep server-side pagination for all records
 
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const response = await reportAPI.getAll({ page, limit: 20 });
+      const response = await reportAPI.getAll({ page, limit: 100 }); // Fetch more for local filtering
       setReports(response.data.data);
+      setFilteredReports(response.data.data);
       setTotalPages(response.data.pagination.pages);
     } catch (error) {
       showError("Failed to fetch reports");
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const filtered = reports.filter(r => {
+      const titleMatch = r.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const formatMatch = filters.format === 'all' || r.format === filters.format;
+      const statusMatch = filters.status === 'all' || r.status === filters.status;
+      return titleMatch && formatMatch && statusMatch;
+    });
+    setFilteredReports(filtered);
+  }, [searchTerm, filters, reports]);
+
+  const handleFilterChange = (e) => {
+    setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleDelete = async (id) => {
@@ -118,7 +139,6 @@ const ReportList = () => {
   };
 
   const handleDownload = (row) => {
-    // Logic for download if URL exists
     if (row.fileUrl) {
       window.open(row.fileUrl, "_blank");
     } else {
@@ -157,19 +177,42 @@ const ReportList = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search reports by title..."
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">
-            <Filter size={18} /> Filter
-          </button>
+          <div className="flex gap-2 w-full md:w-auto">
+            <select
+              name="format"
+              value={filters.format}
+              onChange={handleFilterChange}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="all">All Formats</option>
+              <option value="pdf">PDF</option>
+              <option value="excel">Excel</option>
+              <option value="csv">CSV</option>
+            </select>
+            <select
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="all">All Status</option>
+              <option value="completed">Completed</option>
+              <option value="generating">Generating</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
         </div>
 
         {/* Reports Grid */}
-        {reports.length > 0 ? (
+        {filteredReports.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reports.map((report) => (
+            {filteredReports.map((report) => (
               <ReportCard
                 key={report._id}
                 report={report}

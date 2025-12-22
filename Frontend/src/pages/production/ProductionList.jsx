@@ -21,13 +21,37 @@ const ProductionList = () => {
     province: "",
   });
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
+  const [metadata, setMetadata] = useState({ years: [], crops: [], provinces: [] });
+  const [summaryStats, setSummaryStats] = useState({ totalRecords: 0, activeCrops: 0 });
+
+  // Fetch initial metadata and stats
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [metaRes, cropTypesRes, summaryRes] = await Promise.all([
+          productionAPI.getMetadata(),
+          productionAPI.getCropTypes(),
+          productionAPI.getSummary()
+        ]);
+
+        setMetadata(metaRes.data.data);
+        setSummaryStats({
+          totalRecords: summaryRes.data.data.recordCount || 0,
+          activeCrops: cropTypesRes.data.data.length || 0
+        });
+      } catch (err) {
+        console.error("Failed to fetch initial production metadata", err);
+      }
+    };
+    fetchInitialData();
+  }, []);
 
   // Debounce filter changes
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedFilters(filters);
       setPage(1); // Reset to first page when filters change
-    }, 500); // Wait 500ms after user stops typing
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [filters]);
@@ -57,7 +81,7 @@ const ProductionList = () => {
   };
 
   const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value.toUpperCase() });
+    setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
   const handleClearFilters = () => {
@@ -80,7 +104,7 @@ const ProductionList = () => {
 
   const hasActiveFilters = filters.year || filters.crop || filters.province;
 
-  if (loading && page === 1 && !hasActiveFilters) {
+  if (loading && page === 1 && !hasActiveFilters && metadata.years.length === 0) {
     return (
       <Layout>
         <Loading />
@@ -122,11 +146,11 @@ const ProductionList = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
                 <p className="text-emerald-200 text-xs font-bold uppercase tracking-wider">Total Records</p>
-                <p className="text-2xl font-bold">{data.length > 0 ? "2,450+" : "..."}</p>
+                <p className="text-2xl font-bold">{summaryStats.totalRecords.toLocaleString()}+</p>
               </div>
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
                 <p className="text-emerald-200 text-xs font-bold uppercase tracking-wider">Active Crops</p>
-                <p className="text-2xl font-bold">5 Major</p>
+                <p className="text-2xl font-bold">{summaryStats.activeCrops} Major</p>
               </div>
             </div>
           </div>
@@ -137,36 +161,48 @@ const ProductionList = () => {
           <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
             <div className="relative">
               <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Year</label>
-              <input
-                type="text"
+              <select
                 name="year"
                 value={filters.year}
                 onChange={handleFilterChange}
-                placeholder="e.g. 2024-25"
-                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all"
-              />
+                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">All Years</option>
+                {metadata.years.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 bottom-3.5 pointer-events-none text-slate-400 text-xs">▼</div>
             </div>
             <div className="relative">
               <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Crop Type</label>
-              <input
-                type="text"
+              <select
                 name="crop"
                 value={filters.crop}
                 onChange={handleFilterChange}
-                placeholder="Search Crop..."
-                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all"
-              />
+                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">All Crops</option>
+                {metadata.crops.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 bottom-3.5 pointer-events-none text-slate-400 text-xs">▼</div>
             </div>
             <div className="relative">
               <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Region</label>
-              <input
-                type="text"
+              <select
                 name="province"
                 value={filters.province}
                 onChange={handleFilterChange}
-                placeholder="Province / District"
-                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all"
-              />
+                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">All Regions</option>
+                {metadata.provinces.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 bottom-3.5 pointer-events-none text-slate-400 text-xs">▼</div>
             </div>
           </div>
           {hasActiveFilters && (
@@ -225,14 +261,16 @@ const ProductionList = () => {
                           </span>
                           <div>
                             <p className="font-bold text-slate-800">{row.cropName}</p>
-                            <p className="text-xs text-slate-500">Staple Crop</p>
+                            <p className="text-xs text-slate-500">{row.cropType?.category || "Staple Crop"}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                          <span className="font-medium text-slate-700">{row.province?.name || "N/A"}</span>
+                          <span className="font-medium text-slate-700">
+                            {row.district?.name || row.province?.name || "N/A"}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">

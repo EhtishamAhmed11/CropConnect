@@ -10,15 +10,28 @@ const LatestPricesTable = ({ onRowClick }) => {
     const [prices, setPrices] = useState([]);
     const [filteredPrices, setFilteredPrices] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [crops, setCrops] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [filters, setFilters] = useState({
+        crop: 'all',
+        district: 'all'
+    });
 
     useEffect(() => {
-        const fetchPrices = async () => {
+        const fetchInitialData = async () => {
             try {
                 const response = await marketAPI.getLatestPrices();
                 if (response.data.success) {
-                    setPrices(response.data.data);
-                    setFilteredPrices(response.data.data);
+                    const data = response.data.data;
+                    setPrices(data);
+                    setFilteredPrices(data);
+
+                    // Extract unique crops and districts for dropdowns
+                    const uniqueCrops = [...new Set(data.map(p => p.crop || "Unknown"))].sort();
+                    const uniqueDistricts = [...new Set(data.map(p => p.district?.name || "Unknown"))].sort();
+
+                    setCrops(uniqueCrops);
+                    setDistricts(uniqueDistricts);
                 }
             } catch (error) {
                 console.error("Failed to load prices", error);
@@ -27,19 +40,21 @@ const LatestPricesTable = ({ onRowClick }) => {
             }
         };
 
-        fetchPrices();
+        fetchInitialData();
     }, []);
 
     useEffect(() => {
-        const lowerTerm = searchTerm.toLowerCase();
         const filtered = prices.filter(p => {
-            const cropName = p.crop?.name || p.crop || "";
-            const districtName = p.district?.name || p.district || "";
-            return cropName.toLowerCase().includes(lowerTerm) ||
-                districtName.toLowerCase().includes(lowerTerm);
+            const cropMatch = filters.crop === 'all' || (p.crop || "Unknown") === filters.crop;
+            const districtMatch = filters.district === 'all' || (p.district?.name || "Unknown") === filters.district;
+            return cropMatch && districtMatch;
         });
         setFilteredPrices(filtered);
-    }, [searchTerm, prices]);
+    }, [filters, prices]);
+
+    const handleFilterChange = (e) => {
+        setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
 
     if (loading) return <div className="flex justify-center p-8"><CircularProgress /></div>;
 
@@ -55,23 +70,29 @@ const LatestPricesTable = ({ onRowClick }) => {
                             Click on a row to view detailed trends
                         </Typography>
                     </div>
-                    <TextField
-                        size="small"
-                        placeholder="Search crop or district..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <Search size={18} className="text-gray-400" />
-                                </InputAdornment>
-                            ),
-                        }}
-                        className="w-full sm:w-64"
-                    />
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <select
+                            name="crop"
+                            value={filters.crop}
+                            onChange={handleFilterChange}
+                            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                        >
+                            <option value="all">All Crops</option>
+                            {crops.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        <select
+                            name="district"
+                            value={filters.district}
+                            onChange={handleFilterChange}
+                            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                        >
+                            <option value="all">All Districts</option>
+                            {districts.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </div>
                 </div>
 
-                <TableContainer component={Paper} elevation={0} className="border border-gray-100 rounded-lg overflow-hidden flex-grow">
+                <TableContainer component={Paper} elevation={0} className="border border-gray-100 rounded-lg overflow-hidden flex-grow text-['Outfit']">
                     <Table size="small" stickyHeader>
                         <TableHead>
                             <TableRow className="bg-gray-50">
