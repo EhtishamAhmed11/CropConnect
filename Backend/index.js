@@ -66,6 +66,7 @@ if (process.env.NODE_ENV !== "test") {
     // runAllSeeds()
     // importAllCrops()
     // seedWeather()
+    // seedMarketData()
     // fixCropTypes()
     // fixGeoReferences()
     // seedTollRates()

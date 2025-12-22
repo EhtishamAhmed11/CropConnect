@@ -45,18 +45,6 @@ const Sidebar = () => {
       color: "indigo",
     },
     {
-      path: "/gis",
-      label: "Maps",
-      icon: "🗺️",
-      roles: [
-        "admin",
-        "government_policy_maker",
-        "ngo_coordinator",
-        "distributor",
-      ],
-      color: "teal",
-    },
-    {
       path: "/market",
       label: "Market Intel",
       icon: "📈",

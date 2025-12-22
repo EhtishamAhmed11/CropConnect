@@ -18,7 +18,7 @@ import {
     Alert
 } from "@mui/material";
 import { Map as MapIcon, Truck } from "lucide-react";
-import { gisAPI } from "../../api/gisApi";
+import { gisAPI } from "../../api/gisAPI";
 
 // Fix Leaflet Default Icon Issue
 delete L.Icon.Default.prototype._getIconUrl;

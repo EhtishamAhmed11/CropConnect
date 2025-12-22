@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import LatestPricesTable from '../../components/market/LatestPricesTable';
 import PriceTrendChart from '../../components/market/PriceTrendChart';
-import { gisAPI } from '../../api/gisApi';
+import { marketAPI } from '../../api/marketApi';
+import { gisAPI } from '../../api/gisAPI';
 import {
     TrendingUp,
     DollarSign,
@@ -162,35 +163,7 @@ const MarketDashboard = () => {
                             </div>
                         </div>
 
-                        {/* Insights Card */}
-                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-3xl shadow-xl text-white">
-                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                <Activity size={20} /> Smart Insights
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className="font-bold text-emerald-300 text-sm">Wheat Index</span>
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">Active</span>
-                                    </div>
-                                    <p className="text-xs text-indigo-100 leading-relaxed">Current average price at Rs. {highlights.avgWheatPrice.toLocaleString()}. Market shows stability across major districts.</p>
-                                </div>
-                                <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className="font-bold text-blue-300 text-sm">{highlights.topGainer.name} Surge</span>
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">Bullish</span>
-                                    </div>
-                                    <p className="text-xs text-indigo-100 leading-relaxed">Strong upward trend detected with a {highlights.topGainer.gain}% gain over the last 7 days.</p>
-                                </div>
-                                <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className="font-bold text-orange-300 text-sm">{highlights.volatileCrop} Alert</span>
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">Bearish</span>
-                                    </div>
-                                    <p className="text-xs text-indigo-100 leading-relaxed">High price volatility reported. Traders are advised to monitor supply chain disruptions closely.</p>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
             </div>
