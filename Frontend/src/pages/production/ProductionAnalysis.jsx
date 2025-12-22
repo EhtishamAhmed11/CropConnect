@@ -27,25 +27,34 @@ const ProductionAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [trends, setTrends] = useState([]);
-  const [filters, setFilters] = useState({ year: "2024-25", crop: "" });
-  const [debouncedFilters, setDebouncedFilters] = useState(filters);
-  const [isSearching, setIsSearching] = useState(false);
+  const [metadata, setMetadata] = useState({ years: [], crops: [] });
+  const [filters, setFilters] = useState({ year: "", crop: "" });
 
-  // Debounce filter changes
   useEffect(() => {
-    setIsSearching(true);
-    const timer = setTimeout(() => {
-      setDebouncedFilters(filters);
-      setIsSearching(false);
-    }, 500); // Wait 500ms after user stops typing
+    const loadMetadata = async () => {
+      try {
+        const res = await productionAPI.getMetadata();
+        if (res.data.success) {
+          const { years, crops } = res.data.data;
+          setMetadata({ years, crops });
 
-    return () => clearTimeout(timer);
-  }, [filters]);
+          // Set initial filters from metadata if available
+          setFilters({
+            year: years[0] || "2024-25",
+            crop: crops[0] || ""
+          });
+        }
+      } catch (err) {
+        showError("Failed to load filter metadata");
+      }
+    };
+    loadMetadata();
+  }, []);
 
-  const fetchSummary = async () => {
+  const fetchSummary = async (currentFilters) => {
     setLoading(true);
     try {
-      const response = await productionAPI.getSummary(debouncedFilters);
+      const response = await productionAPI.getSummary(currentFilters);
       setSummary(response.data.data);
     } catch (error) {
       showError("Failed to fetch summary");
@@ -54,23 +63,32 @@ const ProductionAnalysis = () => {
     }
   };
 
-  const fetchTrends = async () => {
+  const fetchTrends = async (currentFilters) => {
     try {
-      const response = await productionAPI.getTrends(debouncedFilters);
+      const response = await productionAPI.getTrends(currentFilters);
       setTrends(response.data.data);
     } catch (error) {
       showError("Failed to fetch trends");
     }
   };
 
-  // Fetch data when debounced filters change
   useEffect(() => {
-    fetchSummary();
-    fetchTrends();
-  }, [debouncedFilters]);
+    if (filters.year || filters.crop) {
+      fetchSummary(filters);
+      fetchTrends(filters);
+    }
+  }, [filters]);
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleClearFilters = () => {
-    setFilters({ year: "2024-25", crop: "" });
+    setFilters({
+      year: metadata.years[0] || "",
+      crop: metadata.crops[0] || ""
+    });
   };
 
   if (loading && !summary) {
@@ -87,7 +105,7 @@ const ProductionAnalysis = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 font-['Outfit']">
           <p className="font-semibold text-gray-900 mb-2">{label}</p>
           {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
@@ -99,8 +117,6 @@ const ProductionAnalysis = () => {
     }
     return null;
   };
-
-  const hasActiveFilter = filters.crop !== "";
 
   return (
     <Layout>
@@ -114,20 +130,46 @@ const ProductionAnalysis = () => {
               Production Analysis
             </h1>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-1 flex items-center">
-            <input
-              type="text"
-              placeholder="Filter by Crop (e.g. WHEAT)..."
-              value={filters.crop}
-              onChange={(e) => setFilters({ ...filters, crop: e.target.value.toUpperCase() })}
-              className="border-none bg-transparent focus:ring-0 text-sm font-semibold text-slate-700 px-4 w-64"
-            />
-            {hasActiveFilter && (
-              <button onClick={handleClearFilters} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors">
+          <div className="flex flex-wrap gap-3 bg-white p-2 rounded-2xl shadow-xl border border-slate-100 items-center">
+            <div className="relative group">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500">🌾</span>
+              <select
+                name="crop"
+                value={filters.crop}
+                onChange={handleFilterChange}
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer w-48 transition-all hover:bg-slate-100"
+              >
+                <option value="">Select Crop</option>
+                {metadata.crops.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative group">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500">📅</span>
+              <select
+                name="year"
+                value={filters.year}
+                onChange={handleFilterChange}
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer w-36 transition-all hover:bg-slate-100"
+              >
+                <option value="">All Years</option>
+                {metadata.years.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+
+            {filters.crop && (
+              <button
+                onClick={handleClearFilters}
+                className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center"
+                title="Reset Filters"
+              >
                 ✕
               </button>
             )}
-            {isSearching && <div className="animate-spin h-4 w-4 border-2 border-emerald-500 border-t-transparent rounded-full mr-3"></div>}
           </div>
         </div>
 

@@ -95,6 +95,7 @@ export const getOptimizedRoutes = async (req, res, next) => {
     const routes = [];
     let totalTollCost = 0;
     let totalTransportCost = 0;
+    let routeCounter = 0;
 
     for (const deficit of deficits) {
       const nearbySurpluses = surpluses
@@ -117,7 +118,7 @@ export const getOptimizedRoutes = async (req, res, next) => {
         const estimatedDuration = Math.round((distanceKm / 50) * 60);
 
         routes.push({
-          id: `route-${supplier.id}-${deficit.id}`,
+          id: `route-${supplier.id}-${deficit.id}-${routeCounter++}`,
           sourceName: supplier.name,
           destName: deficit.name,
           from: supplier.coords,

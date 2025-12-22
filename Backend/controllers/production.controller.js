@@ -128,11 +128,23 @@ export const getProductionById = async (req, res, next) => {
  */
 export const getProductionSummary = async (req, res, next) => {
   try {
-    const { year, crop, province } = req.query;
+    const { year, crop, province, district, level } = req.query;
+
     const matchStage = {};
     if (year) matchStage.year = year;
     if (crop) matchStage.cropCode = crop.toUpperCase();
     if (province) matchStage.provinceCode = province.toUpperCase();
+    if (district) matchStage.districtCode = district.toUpperCase();
+
+    // If level is specified, we filter by it. 
+    // BUT if we want a National overview from district data, we should match level: 'district'
+    // For simplicity, if no specific district/province is selected, and we want a summary, 
+    // we should use district-level data to avoid double counting.
+    if (level) {
+      matchStage.level = level;
+    } else if (!district && !province) {
+      matchStage.level = "district";
+    }
 
     const summary = await ProductionData.aggregate([
       { $match: matchStage },
@@ -181,10 +193,22 @@ export const getProductionSummary = async (req, res, next) => {
 export const getProductionTrends = async (req, res, next) => {
   try {
     const { crop, province, district, level = "national" } = req.query;
-    const matchStage = { level };
+
+    const matchStage = {};
     if (crop) matchStage.cropCode = crop.toUpperCase();
     if (province) matchStage.provinceCode = province.toUpperCase();
     if (district) matchStage.districtCode = district.toUpperCase();
+
+    // To avoid double counting (district + province + national), 
+    // we always aggregate from the 'district' level when looking at higher levels.
+    if (level === "national") {
+      matchStage.level = "district";
+    } else if (level === "provincial") {
+      matchStage.level = "district";
+      // Ensure province is matched if requested for provincial level
+    } else {
+      matchStage.level = level;
+    }
 
     const trends = await ProductionData.aggregate([
       { $match: matchStage },

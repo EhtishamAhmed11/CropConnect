@@ -25,10 +25,29 @@ const ProductionTrends = () => {
   const { showError } = useAlert();
   const [loading, setLoading] = useState(false);
   const [trends, setTrends] = useState([]);
+  const [metadata, setMetadata] = useState({ crops: [] });
   const [filters, setFilters] = useState({
     crop: "",
     level: "national",
   });
+
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        const res = await productionAPI.getMetadata();
+        if (res.data.success) {
+          const { crops } = res.data.data;
+          setMetadata({ crops });
+          if (crops.length > 0) {
+            setFilters(prev => ({ ...prev, crop: crops[0] }));
+          }
+        }
+      } catch (err) {
+        showError("Failed to load crop metadata");
+      }
+    };
+    loadMetadata();
+  }, []);
 
   useEffect(() => {
     if (filters.crop) {
@@ -48,10 +67,15 @@ const ProductionTrends = () => {
     }
   };
 
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
+
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 font-['Outfit']">
           <p className="font-semibold text-gray-900 mb-2">{label}</p>
           {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
@@ -79,25 +103,30 @@ const ProductionTrends = () => {
               Long-term Trends
             </h1>
           </div>
-          {/* Simple Filter Bar */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 flex gap-4">
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-slate-400">🌱</span>
-              <input
-                type="text"
-                placeholder="Crop (e.g. RICE)..."
-                value={filters.crop}
-                onChange={(e) =>
-                  setFilters({ ...filters, crop: e.target.value.toUpperCase() })
-                }
-                className="pl-9 border-none bg-slate-50 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm font-bold text-slate-700 w-48 py-2"
-              />
-            </div>
-            <div className="relative">
+          {/* Filter Bar */}
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-2 flex gap-3 items-center">
+            <div className="relative group">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2">🌱</span>
               <select
+                name="crop"
+                value={filters.crop}
+                onChange={handleFilterChange}
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer w-48 transition-all hover:bg-slate-100"
+              >
+                <option value="">Select Crop</option>
+                {metadata.crops.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative group">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2">📊</span>
+              <select
+                name="level"
                 value={filters.level}
-                onChange={(e) => setFilters({ ...filters, level: e.target.value })}
-                className="border-none bg-slate-50 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm font-bold text-slate-700 py-2 pl-3 pr-8"
+                onChange={handleFilterChange}
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer w-48 transition-all hover:bg-slate-100"
               >
                 <option value="national">National Level</option>
                 <option value="provincial">Provincial Level</option>
