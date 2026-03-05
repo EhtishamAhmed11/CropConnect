@@ -4,6 +4,8 @@ import seedProvinces from "./01-provinces.seed.js";
 import seedSurplusDeficit from "./04-surplusDeficit.seed.js";
 import seedMarketData from "./market.seed.js";
 import seedWeather from "./05-weather.seed.js";
+import seedTollRates from "./tollRates.seed.js";
+import seedPredictions from "./06-predictions.seed.js";
 import connectDb from "../connection/db.connection.js";
 import mongoose from "mongoose";
 import { fileURLToPath } from "url";
@@ -47,9 +49,19 @@ const runAllSeeds = async () => {
     await seedMarketData();
     console.log("");
 
-    console.log("🌦️ STEP 6/6: Seeding Weather Data");
+    console.log("🌦️ STEP 6/8: Seeding Weather Data");
     console.log("─".repeat(50));
     await seedWeather();
+    console.log("");
+
+    console.log("🛣️ STEP 7/8: Seeding Toll Rates");
+    console.log("─".repeat(50));
+    await seedTollRates();
+    console.log("");
+
+    console.log("🤖 STEP 8/8: Seeding AI Predictions");
+    console.log("─".repeat(50));
+    await seedPredictions();
     console.log("");
 
     const endTime = Date.now();

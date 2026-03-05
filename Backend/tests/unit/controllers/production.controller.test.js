@@ -9,17 +9,36 @@ import {
   mockDistrict,
   mockCropType,
 } from "../../helpers/mockData.js";
+import {
+  createMockReq,
+  createMockRes,
+  createMockNext,
+  createTestUser,
+} from "../../helpers/testHelpers.js";
 
 describe("Production Controller", () => {
   let province, district, cropType;
 
   beforeEach(async () => {
-    province = await Province.create(mockProvince);
-    district = await District.create({
+    // Re-use standard codes to stay compatible with seeded data structure
+    const existingProvince = await Province.findOne({ $or: [{ code: mockProvince.code }, { name: mockProvince.name }] });
+    province = existingProvince || (await Province.create(mockProvince));
+
+    const existingCrop = await CropType.findOne({ $or: [{ code: mockCropType.code }, { name: mockCropType.name }] });
+    cropType = existingCrop || (await CropType.create(mockCropType));
+
+    const existingDistrict = await District.findOne({ code: mockDistrict.code });
+    district = existingDistrict || (await District.create({
       ...mockDistrict,
       province: province._id,
+    }));
+
+    // CRITICAL: Clear existing production data for THIS specific province/crop to ensure fresh summary counts
+    // while preserving the province/crop themselves.
+    await ProductionData.deleteMany({
+      province: province._id,
+      cropType: cropType._id
     });
-    cropType = await CropType.create(mockCropType);
   });
 
   describe("getProductionData", () => {
@@ -27,7 +46,9 @@ describe("Production Controller", () => {
       await ProductionData.create({
         ...mockProductionData,
         province: province._id,
+        provinceCode: province.code,
         cropType: cropType._id,
+        cropCode: cropType.code,
       });
     });
 
@@ -55,7 +76,7 @@ describe("Production Controller", () => {
 
     it("should filter production data by year", async () => {
       const req = createMockReq({
-        query: { year: "2024-25" },
+        query: { year: "2024-25", province: province.code, crop: cropType.code },
       });
       const res = createMockRes();
       const next = createMockNext();
@@ -69,7 +90,7 @@ describe("Production Controller", () => {
 
     it("should filter production data by crop", async () => {
       const req = createMockReq({
-        query: { crop: "WHEAT" },
+        query: { crop: cropType.code, province: province.code },
       });
       const res = createMockRes();
       const next = createMockNext();
@@ -86,13 +107,17 @@ describe("Production Controller", () => {
         {
           ...mockProductionData,
           province: province._id,
+          provinceCode: province.code,
           cropType: cropType._id,
+          cropCode: cropType.code,
           production: { value: 10000, unit: "tonnes" },
         },
         {
           ...mockProductionData,
           province: province._id,
+          provinceCode: province.code,
           cropType: cropType._id,
+          cropCode: cropType.code,
           production: { value: 15000, unit: "tonnes" },
         },
       ]);
@@ -100,7 +125,7 @@ describe("Production Controller", () => {
 
     it("should calculate production summary", async () => {
       const req = createMockReq({
-        query: { year: "2024-25", crop: "WHEAT" },
+        query: { year: "2024-25", crop: cropType.code, province: province.code },
       });
       const res = createMockRes();
       const next = createMockNext();

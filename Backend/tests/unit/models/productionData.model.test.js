@@ -7,8 +7,18 @@ describe('ProductionData Model', () => {
   let province, cropType;
 
   beforeEach(async () => {
-    province = await Province.create(mockProvince);
-    cropType = await CropType.create(mockCropType);
+    // Use findOneAndUpdate with upsert to avoid duplicate key errors
+    province = await Province.findOneAndUpdate(
+      { code: mockProvince.code },
+      mockProvince,
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    cropType = await CropType.findOneAndUpdate(
+      { code: mockCropType.code },
+      mockCropType,
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
   });
 
   describe('Schema Validation', () => {
@@ -82,8 +92,8 @@ describe('ProductionData Model', () => {
   describe('Indexes', () => {
     it('should create indexes for efficient querying', async () => {
       const indexes = ProductionData.schema.indexes();
-      
-      expect(indexes.some(idx => 
+
+      expect(indexes.some(idx =>
         JSON.stringify(idx[0]) === JSON.stringify({ year: 1, cropCode: 1, level: 1 })
       )).toBe(true);
     });

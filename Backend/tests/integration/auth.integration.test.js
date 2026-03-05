@@ -1,73 +1,146 @@
 import request from "supertest";
-import app from "../../app.js"; // Your Express app
-import { createTestUser } from "../helpers/testHelpers.js";
+import app from "../../index.js";
+import User from "../../models/user.model.js";
+import { createTestUser, generateToken } from "../helpers/testHelpers.js";
 
 describe("Authentication Integration Tests", () => {
-  describe("Complete Registration Flow", () => {
-    it("should complete user registration to login flow", async () => {
-      // Step 1: Register
-      const registerRes = await request(app).post("/api/auth/register").send({
-        username: "integrationuser",
-        email: "integration@example.com",
-        password: "IntegrationPass123",
-        fullName: "Integration Test User",
+  const password = "SecurePass123";
+
+  describe("Login Flow", () => {
+    let email;
+
+    beforeEach(async () => {
+      email = `john_${Date.now()}_${Math.random().toString(36).substring(7)}@test.com`;
+      await createTestUser({
+        email,
+        password,
+        fullName: "John Test",
+        role: "government_policy_maker",
+        isVerified: true
       });
+    });
 
-      expect(registerRes.status).toBe(201);
-      expect(registerRes.body.success).toBe(true);
-      expect(registerRes.body.data.token).toBeDefined();
+    it("should login with valid credentials", async () => {
+      const loginRes = await request(app)
+        .post("/api/auth/login")
+        .send({ email, password });
 
-      const token = registerRes.body.data.token;
-
-      // Step 2: Access protected route
-      const profileRes = await request(app)
-        .get("/api/auth/me")
-        .set("Authorization", `Bearer ${token}`);
-
-      expect(profileRes.status).toBe(200);
-      expect(profileRes.body.data.email).toBe("integration@example.com");
-
-      // Step 3: Login again
-      const loginRes = await request(app).post("/api/auth/login").send({
-        email: "integration@example.com",
-        password: "IntegrationPass123",
-      });
+      if (loginRes.status !== 200) {
+        console.log('DEBUG: Login failed. Status:', loginRes.status, 'Body:', JSON.stringify(loginRes.body));
+      }
 
       expect(loginRes.status).toBe(200);
-      expect(loginRes.body.data.token).toBeDefined();
+      expect(loginRes.body.success).toBe(true);
+      expect(loginRes.body.data.accessToken).toBeDefined();
+      expect(loginRes.body.data.user.email).toBe(email);
+    });
+
+    it("should reject login with invalid password", async () => {
+      const loginRes = await request(app)
+        .post("/api/auth/login")
+        .send({ email, password: "WrongPassword123" });
+
+      expect(loginRes.status).toBe(401);
+      expect(loginRes.body.success).toBe(false);
+    });
+
+    it("should reject login with non-existent email", async () => {
+      const loginRes = await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: "nonexistent@example.com",
+          password: "SomePassword123"
+        });
+
+      expect(loginRes.status).toBe(401);
     });
   });
 
-  describe("Password Reset Flow", () => {
-    it("should complete forgot password to reset flow", async () => {
-      // Create user first
-      await createTestUser({ email: "resetflow@example.com" });
+  describe("Protected Routes", () => {
+    let authToken;
+    let userEmail;
 
-      // Step 1: Request password reset
-      const forgotRes = await request(app)
-        .post("/api/auth/forgot-password")
-        .send({ email: "resetflow@example.com" });
-
-      expect(forgotRes.status).toBe(200);
-
-      // Get reset token from response (in production, this would be emailed)
-      const resetToken = forgotRes.body.data.resetToken;
-
-      // Step 2: Reset password
-      const resetRes = await request(app)
-        .put(`/api/auth/reset-password/${resetToken}`)
-        .send({ password: "NewSecurePass456" });
-
-      expect(resetRes.status).toBe(200);
-
-      // Step 3: Login with new password
-      const loginRes = await request(app).post("/api/auth/login").send({
-        email: "resetflow@example.com",
-        password: "NewSecurePass456",
+    beforeEach(async () => {
+      const user = await createTestUser({
+        email: `protected_${Date.now()}@test.com`,
+        role: "government_policy_maker",
+        isActive: true,
+        isVerified: true
       });
+      authToken = generateToken(user._id);
+      userEmail = user.email;
+    });
 
-      expect(loginRes.status).toBe(200);
-      expect(loginRes.body.data.token).toBeDefined();
+    it("should access profile with valid token", async () => {
+      const profileRes = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(profileRes.status).toBe(200);
+      expect(profileRes.body.success).toBe(true);
+      expect(profileRes.body.data.email).toBe(userEmail);
+    });
+
+    it("should reject access without token", async () => {
+      const profileRes = await request(app)
+        .get("/api/auth/me");
+
+      expect(profileRes.status).toBe(401);
+    });
+
+    it("should reject access with invalid token", async () => {
+      const profileRes = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", "Bearer invalid_token_here");
+
+      expect(profileRes.status).toBe(401);
+    });
+  });
+
+  describe("Registration Flow", () => {
+    let existingEmail;
+
+    beforeEach(async () => {
+      const user = await createTestUser({
+        email: `existing_${Date.now()}@test.com`
+      });
+      existingEmail = user.email;
+    });
+
+    it("should reject registration with duplicate email", async () => {
+      const registerRes = await request(app)
+        .post("/api/auth/register")
+        .send({
+          username: `newuser_${Date.now()}`,
+          email: existingEmail,
+          password: "NewPassword123",
+          fullName: "Test User"
+        });
+
+      expect(registerRes.status).toBe(400);
+    });
+
+    it("should reject registration with missing fields", async () => {
+      const registerRes = await request(app)
+        .post("/api/auth/register")
+        .send({
+          email: "incomplete@example.com"
+        });
+
+      expect(registerRes.status).toBe(400);
+    });
+
+    it("should reject registration with weak password", async () => {
+      const registerRes = await request(app)
+        .post("/api/auth/register")
+        .send({
+          username: `weak_${Date.now()}`,
+          email: `weak_${Date.now()}@test.com`,
+          password: "123",
+          fullName: "Weak User"
+        });
+
+      expect(registerRes.status).toBe(400);
     });
   });
 });

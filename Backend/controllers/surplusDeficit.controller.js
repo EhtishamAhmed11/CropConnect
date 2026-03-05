@@ -278,6 +278,24 @@ export const getSurplusDeficitRecords = async (req, res, next) => {
 
     const skip = (page - 1) * limit;
 
+    // Build query filter from request parameters
+    const query = {};
+    if (year) query.year = year;
+    if (crop) {
+      const cropDoc = await CropType.findOne({ code: crop.toUpperCase() });
+      if (cropDoc) query.cropType = cropDoc._id;
+    }
+    if (province) {
+      const provDoc = await Province.findOne({ code: province.toUpperCase() });
+      if (provDoc) query.province = provDoc._id;
+    }
+    if (district) {
+      const distDoc = await District.findOne({ code: district.toUpperCase() });
+      if (distDoc) query.district = distDoc._id;
+    }
+    if (status) query.status = status;
+    if (severity) query.severity = severity;
+
     const [records, total] = await Promise.all([
       SurplusDeficit.find(query)
         .populate("province", "name code")
@@ -401,6 +419,13 @@ export const getDeficitRegions = async (req, res, next) => {
   try {
     const { year, crop, severity = "all" } = req.query;
 
+    // Cache check
+    const cacheKey = cache.generateKey("deficit_regions", { year, crop, severity });
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.success(res, cachedData, "Deficit regions retrieved from cache");
+    }
+
     const matchStage = {
       status: "deficit",
     };
@@ -433,6 +458,8 @@ export const getDeficitRegions = async (req, res, next) => {
         },
         crop: region.cropType?.name,
         year: region.year,
+        production: Math.round(region.production),
+        consumption: Math.round(region.consumption),
         deficitPercentage: Math.abs(region.surplusDeficitPercentage).toFixed(2),
         balance: Math.round(region.balance),
         selfSufficiency: region.selfSufficiencyRatio.toFixed(2),
@@ -441,15 +468,20 @@ export const getDeficitRegions = async (req, res, next) => {
       });
     });
 
+    const responseData = {
+      deficitRegions: grouped,
+      totalDeficits: deficitRegions.length,
+      criticalCount: grouped.critical.length,
+      moderateCount: grouped.moderate.length,
+      mildCount: grouped.mild.length,
+    };
+
+    // Store in cache (5 min TTL)
+    cache.set(cacheKey, responseData);
+
     return ApiResponse.success(
       res,
-      {
-        deficitRegions: grouped,
-        totalDeficits: deficitRegions.length,
-        criticalCount: grouped.critical.length,
-        moderateCount: grouped.moderate.length,
-        mildCount: grouped.mild.length,
-      },
+      responseData,
       "Deficit regions retrieved successfully"
     );
   } catch (error) {
@@ -465,6 +497,13 @@ export const getDeficitRegions = async (req, res, next) => {
 export const getSurplusRegions = async (req, res, next) => {
   try {
     const { year, crop, minSurplus = 10 } = req.query;
+
+    // Cache check
+    const cacheKey = cache.generateKey("surplus_regions", { year, crop, minSurplus });
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return ApiResponse.success(res, cachedData, "Surplus regions retrieved from cache");
+    }
 
     const matchStage = {
       status: "surplus",
@@ -490,17 +529,24 @@ export const getSurplusRegions = async (req, res, next) => {
       },
       crop: region.cropType?.name,
       year: region.year,
+      production: Math.round(region.production),
+      consumption: Math.round(region.consumption),
       surplusPercentage: region.surplusDeficitPercentage.toFixed(2),
       balance: Math.round(region.balance),
       availableForRedistribution: Math.round(region.balance * 0.8), // Assume 80% available
     }));
 
+    const responseData = {
+      surplusRegions: formattedRegions,
+      totalSurplusRegions: surplusRegions.length,
+    };
+
+    // Store in cache (5 min TTL)
+    cache.set(cacheKey, responseData);
+
     return ApiResponse.success(
       res,
-      {
-        surplusRegions: formattedRegions,
-        totalSurplusRegions: surplusRegions.length,
-      },
+      responseData,
       "Surplus regions retrieved successfully"
     );
   } catch (error) {

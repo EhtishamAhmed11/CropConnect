@@ -12,7 +12,11 @@ beforeAll(async () => {
 beforeEach(async () => {
   const collections = mongoose.connection.collections;
   for (const key in collections) {
-    await collections[key].deleteMany({});
+    // Preserve users and other core setup data during unit tests to avoid re-seeding overhead
+    const skipList = ['users', 'provinces', 'districts', 'croptypes', 'crop-types', 'croptype'];
+    if (!skipList.includes(key.toLowerCase())) {
+      await collections[key].deleteMany({});
+    }
   }
 });
 
@@ -22,8 +26,5 @@ afterAll(async () => {
 });
 
 afterEach(async () => {
-  const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    await collections[key].deleteMany({});
-  }
+  // Selective cleanup can also be placed here if needed, but beforeEach is usually sufficient
 });

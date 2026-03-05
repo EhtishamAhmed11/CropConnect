@@ -11,9 +11,12 @@ export const generateToken = (userId) => {
   });
 };
 export const createTestUser = async (overrides = {}) => {
-  const random = uuidv4().split("-")[0]; // e.g., "a1b2c3d4"
+  const random = uuidv4().split("-")[0];
   const password = overrides.password || "TestPass123";
   const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Remove password from overrides to ensure it doesn't overwrite hashedPassword
+  const { password: _, ...otherOverrides } = overrides;
 
   const defaultUser = {
     username: `testuser_${random}`,
@@ -23,7 +26,7 @@ export const createTestUser = async (overrides = {}) => {
     role: "government_policy_maker",
     isVerified: true,
     isActive: true,
-    ...overrides,
+    ...otherOverrides,
   };
 
   return await User.create(defaultUser);

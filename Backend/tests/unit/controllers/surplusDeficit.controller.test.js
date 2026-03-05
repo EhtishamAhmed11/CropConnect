@@ -1,4 +1,5 @@
 import * as surplusDeficitController from "../../../controllers/surplusDeficit.controller.js";
+import Alert from "../../../models/alerts.model.js";
 import CropType from "../../../models/cropType.model.js";
 import ProductionData from "../../../models/productionData.model.js";
 import Province from "../../../models/province.model.js";
@@ -10,17 +11,27 @@ describe("Surplus/Deficit Controller", () => {
   let province, cropType, user;
 
   beforeEach(async () => {
-    province = await Province.create({
-      ...mockProvince,
-      population: 110000000,
+    const existingProvince = await Province.findOne({ $or: [{ code: mockProvince.code }, { name: mockProvince.name }] });
+    province = existingProvince || (await Province.create(mockProvince));
+
+    const existingCrop = await CropType.findOne({ $or: [{ code: mockCropType.code }, { name: mockCropType.name }] });
+    cropType = existingCrop || (await CropType.create(mockCropType));
+
+    user = await createTestUser({
+      role: "government_policy_maker",
+      email: `policy_${Date.now()}@test.com`
     });
-    cropType = await CropType.create(mockCropType);
-    user = await createTestUser({ role: "government_policy_maker" });
+
+    // Isolation: clear production and surplus data for this combination
+    await ProductionData.deleteMany({ province: province._id, cropType: cropType._id });
+    await SurplusDeficit.deleteMany({ province: province._id, cropType: cropType._id });
 
     await ProductionData.create({
       ...mockProductionData,
       province: province._id,
+      provinceCode: province.code,
       cropType: cropType._id,
+      cropCode: cropType.code,
       production: { value: 10000000, unit: "tonnes" },
     });
   });
@@ -30,8 +41,8 @@ describe("Surplus/Deficit Controller", () => {
       const req = createMockReq({
         body: {
           year: "2024-25",
-          crop: "WHEAT",
-          province: "PB",
+          crop: cropType.code,
+          province: province.code,
         },
         user,
       });
@@ -58,15 +69,15 @@ describe("Surplus/Deficit Controller", () => {
 
     it("should create alert for critical deficit", async () => {
       await ProductionData.findOneAndUpdate(
-        { cropCode: "WHEAT" },
+        { cropCode: cropType.code },
         { production: { value: 5000000, unit: "tonnes" } }
       );
 
       const req = createMockReq({
         body: {
           year: "2024-25",
-          crop: "WHEAT",
-          province: "PB",
+          crop: cropType.code,
+          province: province.code,
         },
         user,
       });
@@ -109,9 +120,9 @@ describe("Surplus/Deficit Controller", () => {
         year: "2024-25",
         level: "provincial",
         province: province._id,
-        provinceCode: "PB",
+        provinceCode: province.code,
         cropType: cropType._id,
-        cropCode: "WHEAT",
+        cropCode: cropType.code,
         production: 5000000,
         consumption: 10000000,
         balance: -5000000,
@@ -125,7 +136,7 @@ describe("Surplus/Deficit Controller", () => {
 
     it("should retrieve deficit regions", async () => {
       const req = createMockReq({
-        query: { year: "2024-25", crop: "WHEAT" },
+        query: { year: "2024-25", crop: cropType.code, province: province.code },
       });
       const res = createMockRes();
       const next = createMockNext();

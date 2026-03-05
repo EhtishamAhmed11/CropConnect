@@ -11,6 +11,11 @@ import * as LogisticsService from "../services/logistics.service.js";
 
 // Simple cache for optimized routes (in-memory, lasts until server restart)
 const routeCache = new Map();
+// Caches for GeoJSON and map data
+const geoJsonCache = new Map();
+const mapDataCache = new Map();
+const GEOJSON_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const MAP_DATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * @desc    Get optimized distribution routes with toll and transport costs
@@ -396,6 +401,13 @@ export const getSurplusDeficitMapData = async (req, res, next) => {
       return ApiResponse.error(res, "Year and crop are required", 400);
     }
 
+    // Check cache
+    const cacheKey = `sd-map-${year}-${crop.toUpperCase()}-${level}`;
+    const cached = mapDataCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < MAP_DATA_CACHE_TTL) {
+      return ApiResponse.success(res, cached.data, "Surplus/deficit map data retrieved from cache");
+    }
+
     const query = {
       year,
       cropCode: crop.toUpperCase(),
@@ -453,6 +465,9 @@ export const getSurplusDeficitMapData = async (req, res, next) => {
         selfSufficiencyRatio: calcResults.selfSufficiencyRatio
       };
     });
+
+    // Store in cache
+    mapDataCache.set(cacheKey, { data: mapData, timestamp: Date.now() });
 
     return ApiResponse.success(
       res,
@@ -620,6 +635,13 @@ export const getDistrictsGeoJSON = async (req, res, next) => {
   try {
     const { province } = req.query;
 
+    // Check cache
+    const cacheKey = `geojson-districts-${province || 'all'}`;
+    const cached = geoJsonCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < GEOJSON_CACHE_TTL) {
+      return ApiResponse.success(res, cached.data, "Districts GeoJSON retrieved from cache");
+    }
+
     const query = { isActive: true };
     if (province) query.provinceCode = province.toUpperCase();
 
@@ -651,6 +673,9 @@ export const getDistrictsGeoJSON = async (req, res, next) => {
         },
       })),
     };
+
+    // Store in cache
+    geoJsonCache.set(cacheKey, { data: geoJSON, timestamp: Date.now() });
 
     return ApiResponse.success(
       res,

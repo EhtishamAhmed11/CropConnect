@@ -6,7 +6,14 @@ import Button from "../../components/common/Button";
 import {
   RadialBarChart,
   RadialBar,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
 import { Scale, AlertTriangle, CheckCircle2 } from "lucide-react";
 
@@ -94,6 +101,37 @@ const ResultsCard = ({ result }) => {
           </div>
         </div>
       </div>
+
+      {/* Production vs Consumption Comparison */}
+      {(result.production || result.consumption) && (
+        <div className="bg-white p-6 rounded-xl border border-slate-200">
+          <h3 className="text-slate-500 font-medium text-sm uppercase tracking-wide mb-4">Production vs Demand</h3>
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={[
+                  { name: 'Production', value: result.production || 0 },
+                  { name: 'Demand', value: result.consumption || 0 },
+                ]}
+                layout="vertical"
+                margin={{ left: 20, right: 30 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                <XAxis type="number" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 13, fontWeight: 600 }} axisLine={false} tickLine={false} width={90} />
+                <Tooltip
+                  formatter={(value) => `${value.toLocaleString()} tonnes`}
+                  contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
+                  <Cell fill="#10b981" />
+                  <Cell fill="#ef4444" />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Recommendations */}
       {result.recommendations && result.recommendations.length > 0 && (

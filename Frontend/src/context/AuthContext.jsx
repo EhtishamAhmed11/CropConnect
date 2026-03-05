@@ -17,12 +17,14 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("token"));
 
   useEffect(() => {
-    if (token) {
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) {
+      setToken(storedToken);
       fetchUser();
     } else {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   const fetchUser = async () => {
     try {
@@ -38,12 +40,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await authAPI.login({ email, password });
-    const { token, user } = response.data.data;
+    const { accessToken, refreshToken, user } = response.data.data;
 
-    localStorage.setItem("token", token);
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("user", JSON.stringify(user));
 
-    setToken(token);
+    setToken(accessToken);
     setUser(user);
 
     return user;
@@ -51,12 +54,13 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     const response = await authAPI.register(userData);
-    const { token, user } = response.data.data;
+    const { accessToken, refreshToken, user } = response.data.data;
 
-    localStorage.setItem("token", token);
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("user", JSON.stringify(user));
 
-    setToken(token);
+    setToken(accessToken);
     setUser(user);
 
     return user;
@@ -64,6 +68,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     setToken(null);
     setUser(null);

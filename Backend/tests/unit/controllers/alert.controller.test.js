@@ -10,15 +10,19 @@ describe("Alert Controller", () => {
 
   beforeEach(async () => {
     user = await createTestUser({ role: "government_policy_maker" });
-    province = await Province.create(mockProvince);
-    cropType = await CropType.create(mockCropType);
+
+    const existingProvince = await Province.findOne({ code: mockProvince.code });
+    province = existingProvince || (await Province.create(mockProvince));
+
+    const existingCrop = await CropType.findOne({ code: mockCropType.code });
+    cropType = existingCrop || (await CropType.create(mockCropType));
   });
 
   describe("getAlerts", () => {
     beforeEach(async () => {
       await Alert.create([
         {
-          alertId: "ALERT-001",
+          alertId: `ALERT-001-${Date.now()}`,
           title: "Critical Deficit Alert",
           message: "Severe wheat deficit in Punjab",
           alertType: "deficit_critical",
@@ -29,7 +33,7 @@ describe("Alert Controller", () => {
           cropType: cropType._id,
         },
         {
-          alertId: "ALERT-002",
+          alertId: `ALERT-002-${Date.now()}`,
           title: "Production Drop",
           message: "Rice production decreased",
           alertType: "production_drop",
@@ -92,7 +96,7 @@ describe("Alert Controller", () => {
     it("should create alert with valid data", async () => {
       const adminUser = await createTestUser({
         role: "admin",
-        email: "admin@test.com",
+        email: `admin_${Date.now()}@test.com`,
       });
 
       const req = createMockReq({
@@ -119,7 +123,7 @@ describe("Alert Controller", () => {
     it("should reject alert creation with missing required fields", async () => {
       const adminUser = await createTestUser({
         role: "admin",
-        email: "admin@test.com",
+        email: `very_unique_admin_${Date.now()}@banana.com`,
       });
 
       const req = createMockReq({
@@ -142,7 +146,7 @@ describe("Alert Controller", () => {
 
     beforeEach(async () => {
       alert = await Alert.create({
-        alertId: "ALERT-ACK-001",
+        alertId: `ALERT-ACK-001-${Date.now()}`,
         title: "Test Alert",
         message: "Test message",
         alertType: "system_health",
@@ -194,7 +198,7 @@ describe("Alert Controller", () => {
 
     beforeEach(async () => {
       alert = await Alert.create({
-        alertId: "ALERT-RESOLVE-001",
+        alertId: `ALERT-RESOLVE-001-${Date.now()}`,
         title: "Test Alert",
         message: "Test message",
         alertType: "system_health",
@@ -243,7 +247,7 @@ describe("Alert Controller", () => {
     beforeEach(async () => {
       await Alert.create([
         {
-          alertId: "ALERT-UNREAD-001",
+          alertId: `ALERT-UNREAD-001-${Date.now()}`,
           title: "Unread Alert 1",
           message: "Test",
           alertType: "system_health",
@@ -252,7 +256,7 @@ describe("Alert Controller", () => {
           targetRoles: ["government_policy_maker"],
         },
         {
-          alertId: "ALERT-UNREAD-002",
+          alertId: `ALERT-UNREAD-002-${Date.now()}`,
           title: "Unread Alert 2",
           message: "Test",
           alertType: "system_health",
@@ -286,7 +290,7 @@ describe("Alert Controller", () => {
     beforeEach(async () => {
       await Alert.create([
         {
-          alertId: "ALERT-CRIT-001",
+          alertId: `ALERT-CRIT-001-${Date.now()}`,
           title: "Critical Alert",
           message: "Critical issue",
           alertType: "deficit_critical",

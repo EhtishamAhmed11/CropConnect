@@ -225,10 +225,10 @@ export const getProductionSummary = async (req, res, next) => {
  */
 export const getProductionTrends = async (req, res, next) => {
   try {
-    const { crop, province, district, level = "national" } = req.query;
+    const { crop, province, district, level = "national", yearsBack = 7 } = req.query;
 
     // Cache check
-    const cacheKey = cache.generateKey("trends", { crop, province, district, level });
+    const cacheKey = cache.generateKey("trends", { crop, province, district, level, yearsBack });
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
       return ApiResponse.success(res, cachedData, "Production trends retrieved from cache");
@@ -238,6 +238,30 @@ export const getProductionTrends = async (req, res, next) => {
     if (crop) matchStage.cropCode = crop.toUpperCase();
     if (province) matchStage.provinceCode = province.toUpperCase();
     if (district) matchStage.districtCode = district.toUpperCase();
+
+    // Filter to last N years by default (e.g., 2018-19 to 2024-25 for 7 years)
+    // Calculate the current crop year (e.g., if it's Dec 2025, we're in 2024-25 season)
+    const currentDate = new Date();
+    const currentCalendarYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth(); // 0-indexed
+
+    // If we're past July (month 6), we're in the next crop year
+    const currentCropYearStart = currentMonth >= 6 ? currentCalendarYear : currentCalendarYear - 1;
+
+    // Calculate the start year for filtering (7 years back)
+    const startYearForFilter = currentCropYearStart - parseInt(yearsBack) + 1;
+
+    // Build year filter for last N years matching format "YYYY-YY" (e.g., "2018-19", "2019-20", ..., "2024-25")
+    // Generate array of years and convert to YYYY-YY format
+    const years = Array.from({ length: parseInt(yearsBack) }, (_, i) => {
+      const year = startYearForFilter + i;
+      const nextYear = (year + 1).toString().slice(-2); // Get last 2 digits
+      return `${year}-${nextYear}`;
+    });
+
+    // Create regex pattern that matches any of these years
+    const yearPattern = new RegExp(`^(${years.join('|')})$`);
+    matchStage.year = { $regex: yearPattern };
 
     // To avoid double counting (district + province + national), 
     // we always aggregate from the 'district' level when looking at higher levels.
@@ -541,7 +565,7 @@ export const getTopDistricts = async (req, res, next) => {
  */
 export const createProductionData = async (req, res, next) => {
   try {
-    const produtionData = await ProductionData.create(req.body);
+    const productionData = await ProductionData.create(req.body);
     return ApiResponse.created(
       res,
       productionData,

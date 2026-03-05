@@ -1,0 +1,16 @@
+Crop,Region,Best_Model,Test_R2,CV_R2,Test_RMSE,Test_MAE,MAPE
+Cotton,Punjab,Linear Regression,1.0,0.9982,1.41,1.2414006211279585,0.11
+Cotton,Sindh,Linear Regression,0.9998,0.9978,1.49,1.3381145274443007,0.25
+Cotton,KPK,Linear Regression,0.9753,0.9536,0.02,0.013192148102011528,24.27
+Cotton,Balochistan,Linear Regression,1.0,0.8,0.0,8.859579736508749e-14,0.0
+Cotton,Pakistan,Linear Regression,0.9999,0.9981,3.26,2.89736397579199,0.19
+Rice,Punjab,Lasso (Optimized),0.9675,0.7273,173.53,135.41889208327024,3.64
+Rice,Sindh,Polynomial Regression (Degree 2),0.9056,0.9967,132.11,107.89157146492312,4.5
+Rice,KPK,Polynomial Regression (Degree 2),0.843,0.9972,10.43,8.614064680299128,6.27
+Rice,Balochistan,Lasso (Optimized),0.85,-0.5804,68.52,40.68377651595966,25.9
+Rice,Pakistan,Lasso (Optimized),0.9558,0.83,262.77,203.302452416121,3.1
+Wheat,Punjab,Polynomial Regression (Degree 2),0.6413,0.9979,918.98,850.7284035804466,4.39
+Wheat,Sindh,Lasso (Optimized),0.8615,0.6889,83.3,66.13014009023797,1.71
+Wheat,KPK,Lasso (Optimized),0.9167,0.8148,33.72,28.67666173646097,2.19
+Wheat,Balochistan,Polynomial Regression (Degree 2),0.965,0.9983,47.42,30.55963301568891,2.82
+Wheat,Pakistan,Lasso (Optimized),0.9702,0.1492,345.04,275.8933036526514,1.03

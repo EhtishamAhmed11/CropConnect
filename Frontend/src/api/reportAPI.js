@@ -10,4 +10,5 @@ export const reportAPI = {
   delete: (id) => api.delete(`/reports/${id}`),
   getScheduled: (params) => api.get("/reports/scheduled", { params }),
   updateSchedule: (id, data) => api.put(`/reports/${id}/schedule`, data),
+  downloadReport: (id) => api.get(`/reports/${id}/download`, { responseType: "blob" }),
 };

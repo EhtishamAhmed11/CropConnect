@@ -40,7 +40,8 @@ const weatherSchema = new mongoose.Schema({
         temperatureMax: Number,
         temperatureMin: Number,
         condition: String,
-        rainfallProb: Number
+        rainfallProb: Number,
+        icon: String
     }],
 
     timestamp: {

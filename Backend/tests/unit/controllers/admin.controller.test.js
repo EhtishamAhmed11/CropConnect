@@ -24,7 +24,7 @@ describe("Admin Controller", () => {
   beforeEach(async () => {
     const collections = mongoose.connection.collections;
     for (const key in collections) {
-      await collections[key].deleteMany({});
+      // await collections[key].deleteMany({});
     }
 
     adminUser = await createTestUser({
@@ -295,8 +295,11 @@ describe("Admin Controller", () => {
       await createTestUser({ role: "government_policy_maker" });
       await createTestUser({ role: "ngo_coordinator" });
 
-      const province = await Province.create(mockProvince);
-      const cropType = await CropType.create(mockCropType);
+      const existingProvince = await Province.findOne({ code: mockProvince.code });
+      const province = existingProvince || (await Province.create(mockProvince));
+
+      const existingCrop = await CropType.findOne({ code: mockCropType.code });
+      const cropType = existingCrop || (await CropType.create(mockCropType));
 
       await ProductionData.create({
         ...mockProductionData,

@@ -1,0 +1,151 @@
+Crop,Region,Year,Predicted_Production,Model,Model_R2
+Cotton,Balochistan,2024,27.54,Linear Regression,1.0
+Cotton,Balochistan,2025,79.52,Linear Regression,1.0
+Cotton,Balochistan,2026,53.53,Linear Regression,1.0
+Cotton,Balochistan,2027,27.54,Linear Regression,1.0
+Cotton,Balochistan,2028,79.52,Linear Regression,1.0
+Cotton,Balochistan,2029,53.53,Linear Regression,1.0
+Cotton,Balochistan,2030,27.54,Linear Regression,1.0
+Cotton,Balochistan,2031,79.52,Linear Regression,1.0
+Cotton,Balochistan,2032,53.54,Linear Regression,1.0
+Cotton,Balochistan,2033,27.54,Linear Regression,1.0
+Cotton,KPK,2024,0.06,Linear Regression,0.9753
+Cotton,KPK,2025,0.0,Linear Regression,0.9753
+Cotton,KPK,2026,0.02,Linear Regression,0.9753
+Cotton,KPK,2027,0.03,Linear Regression,0.9753
+Cotton,KPK,2028,0.02,Linear Regression,0.9753
+Cotton,KPK,2029,0.02,Linear Regression,0.9753
+Cotton,KPK,2030,0.03,Linear Regression,0.9753
+Cotton,KPK,2031,0.03,Linear Regression,0.9753
+Cotton,KPK,2032,0.03,Linear Regression,0.9753
+Cotton,KPK,2033,0.03,Linear Regression,0.9753
+Cotton,Pakistan,2024,1406.59,Linear Regression,0.9999
+Cotton,Pakistan,2025,1868.63,Linear Regression,0.9999
+Cotton,Pakistan,2026,1991.29,Linear Regression,0.9999
+Cotton,Pakistan,2027,1505.32,Linear Regression,0.9999
+Cotton,Pakistan,2028,1586.92,Linear Regression,0.9999
+Cotton,Pakistan,2029,2010.29,Linear Regression,0.9999
+Cotton,Pakistan,2030,1759.9,Linear Regression,0.9999
+Cotton,Pakistan,2031,1462.19,Linear Regression,0.9999
+Cotton,Pakistan,2032,1818.17,Linear Regression,0.9999
+Cotton,Pakistan,2033,1952.27,Linear Regression,0.9999
+Cotton,Punjab,2024,874.83,Linear Regression,1.0
+Cotton,Punjab,2025,1110.68,Linear Regression,1.0
+Cotton,Punjab,2026,1119.42,Linear Regression,1.0
+Cotton,Punjab,2027,884.45,Linear Regression,1.0
+Cotton,Punjab,2028,1012.2,Linear Regression,1.0
+Cotton,Punjab,2029,1166.05,Linear Regression,1.0
+Cotton,Punjab,2030,951.78,Linear Regression,1.0
+Cotton,Punjab,2031,926.22,Linear Regression,1.0
+Cotton,Punjab,2032,1149.03,Linear Regression,1.0
+Cotton,Punjab,2033,1043.74,Linear Regression,1.0
+Cotton,Sindh,2024,508.61,Linear Regression,0.9998
+Cotton,Sindh,2025,795.04,Linear Regression,0.9998
+Cotton,Sindh,2026,668.89,Linear Regression,0.9998
+Cotton,Sindh,2027,538.1,Linear Regression,0.9998
+Cotton,Sindh,2028,758.71,Linear Regression,0.9998
+Cotton,Sindh,2029,675.38,Linear Regression,0.9998
+Cotton,Sindh,2030,562.44,Linear Regression,0.9998
+Cotton,Sindh,2031,731.34,Linear Regression,0.9998
+Cotton,Sindh,2032,678.26,Linear Regression,0.9998
+Cotton,Sindh,2033,582.34,Linear Regression,0.9998
+Rice,Balochistan,2024,586.39,Lasso (Optimized),0.85
+Rice,Balochistan,2025,532.31,Lasso (Optimized),0.85
+Rice,Balochistan,2026,524.27,Lasso (Optimized),0.85
+Rice,Balochistan,2027,526.54,Lasso (Optimized),0.85
+Rice,Balochistan,2028,531.24,Lasso (Optimized),0.85
+Rice,Balochistan,2029,531.21,Lasso (Optimized),0.85
+Rice,Balochistan,2030,530.09,Lasso (Optimized),0.85
+Rice,Balochistan,2031,529.39,Lasso (Optimized),0.85
+Rice,Balochistan,2032,529.18,Lasso (Optimized),0.85
+Rice,Balochistan,2033,528.98,Lasso (Optimized),0.85
+Rice,KPK,2024,13.57,Polynomial Regression (Degree 2),0.843
+Rice,KPK,2025,11.78,Polynomial Regression (Degree 2),0.843
+Rice,KPK,2026,11.71,Polynomial Regression (Degree 2),0.843
+Rice,KPK,2027,11.54,Polynomial Regression (Degree 2),0.843
+Rice,KPK,2028,11.57,Polynomial Regression (Degree 2),0.843
+Rice,KPK,2029,11.61,Polynomial Regression (Degree 2),0.843
+Rice,KPK,2030,11.65,Polynomial Regression (Degree 2),0.843
+Rice,KPK,2031,11.69,Polynomial Regression (Degree 2),0.843
+Rice,KPK,2032,11.73,Polynomial Regression (Degree 2),0.843
+Rice,KPK,2033,11.77,Polynomial Regression (Degree 2),0.843
+Rice,Pakistan,2024,9753.96,Lasso (Optimized),0.9558
+Rice,Pakistan,2025,10279.61,Lasso (Optimized),0.9558
+Rice,Pakistan,2026,10299.46,Lasso (Optimized),0.9558
+Rice,Pakistan,2027,10215.11,Lasso (Optimized),0.9558
+Rice,Pakistan,2028,10183.63,Lasso (Optimized),0.9558
+Rice,Pakistan,2029,10197.09,Lasso (Optimized),0.9558
+Rice,Pakistan,2030,10207.02,Lasso (Optimized),0.9558
+Rice,Pakistan,2031,10206.38,Lasso (Optimized),0.9558
+Rice,Pakistan,2032,10203.95,Lasso (Optimized),0.9558
+Rice,Pakistan,2033,10203.53,Lasso (Optimized),0.9558
+Rice,Punjab,2024,5976.04,Lasso (Optimized),0.9675
+Rice,Punjab,2025,6352.74,Lasso (Optimized),0.9675
+Rice,Punjab,2026,6375.54,Lasso (Optimized),0.9675
+Rice,Punjab,2027,6321.78,Lasso (Optimized),0.9675
+Rice,Punjab,2028,6298.91,Lasso (Optimized),0.9675
+Rice,Punjab,2029,6306.45,Lasso (Optimized),0.9675
+Rice,Punjab,2030,6312.89,Lasso (Optimized),0.9675
+Rice,Punjab,2031,6312.83,Lasso (Optimized),0.9675
+Rice,Punjab,2032,6311.41,Lasso (Optimized),0.9675
+Rice,Punjab,2033,6311.09,Lasso (Optimized),0.9675
+Rice,Sindh,2024,0.0,Polynomial Regression (Degree 2),0.9056
+Rice,Sindh,2025,341.2,Polynomial Regression (Degree 2),0.9056
+Rice,Sindh,2026,341.47,Polynomial Regression (Degree 2),0.9056
+Rice,Sindh,2027,341.71,Polynomial Regression (Degree 2),0.9056
+Rice,Sindh,2028,341.92,Polynomial Regression (Degree 2),0.9056
+Rice,Sindh,2029,342.13,Polynomial Regression (Degree 2),0.9056
+Rice,Sindh,2030,342.34,Polynomial Regression (Degree 2),0.9056
+Rice,Sindh,2031,342.55,Polynomial Regression (Degree 2),0.9056
+Rice,Sindh,2032,342.76,Polynomial Regression (Degree 2),0.9056
+Rice,Sindh,2033,342.97,Polynomial Regression (Degree 2),0.9056
+Wheat,Balochistan,2024,26.6,Polynomial Regression (Degree 2),0.965
+Wheat,Balochistan,2025,56.4,Polynomial Regression (Degree 2),0.965
+Wheat,Balochistan,2026,56.8,Polynomial Regression (Degree 2),0.965
+Wheat,Balochistan,2027,57.06,Polynomial Regression (Degree 2),0.965
+Wheat,Balochistan,2028,57.22,Polynomial Regression (Degree 2),0.965
+Wheat,Balochistan,2029,57.38,Polynomial Regression (Degree 2),0.965
+Wheat,Balochistan,2030,57.54,Polynomial Regression (Degree 2),0.965
+Wheat,Balochistan,2031,57.7,Polynomial Regression (Degree 2),0.965
+Wheat,Balochistan,2032,57.86,Polynomial Regression (Degree 2),0.965
+Wheat,Balochistan,2033,58.02,Polynomial Regression (Degree 2),0.965
+Wheat,KPK,2024,1434.8,Lasso (Optimized),0.9167
+Wheat,KPK,2025,1477.52,Lasso (Optimized),0.9167
+Wheat,KPK,2026,1484.8,Lasso (Optimized),0.9167
+Wheat,KPK,2027,1484.35,Lasso (Optimized),0.9167
+Wheat,KPK,2028,1479.96,Lasso (Optimized),0.9167
+Wheat,KPK,2029,1479.42,Lasso (Optimized),0.9167
+Wheat,KPK,2030,1480.0,Lasso (Optimized),0.9167
+Wheat,KPK,2031,1480.42,Lasso (Optimized),0.9167
+Wheat,KPK,2032,1480.39,Lasso (Optimized),0.9167
+Wheat,KPK,2033,1480.29,Lasso (Optimized),0.9167
+Wheat,Pakistan,2024,29624.66,Lasso (Optimized),0.9702
+Wheat,Pakistan,2025,32335.24,Lasso (Optimized),0.9702
+Wheat,Pakistan,2026,31741.75,Lasso (Optimized),0.9702
+Wheat,Pakistan,2027,31610.0,Lasso (Optimized),0.9702
+Wheat,Pakistan,2028,31524.2,Lasso (Optimized),0.9702
+Wheat,Pakistan,2029,31505.06,Lasso (Optimized),0.9702
+Wheat,Pakistan,2030,31445.07,Lasso (Optimized),0.9702
+Wheat,Pakistan,2031,31386.84,Lasso (Optimized),0.9702
+Wheat,Pakistan,2032,31329.62,Lasso (Optimized),0.9702
+Wheat,Pakistan,2033,31273.27,Lasso (Optimized),0.9702
+Wheat,Punjab,2024,2258.17,Polynomial Regression (Degree 2),0.6413
+Wheat,Punjab,2025,2332.36,Polynomial Regression (Degree 2),0.6413
+Wheat,Punjab,2026,2335.85,Polynomial Regression (Degree 2),0.6413
+Wheat,Punjab,2027,2339.31,Polynomial Regression (Degree 2),0.6413
+Wheat,Punjab,2028,2342.94,Polynomial Regression (Degree 2),0.6413
+Wheat,Punjab,2029,2346.57,Polynomial Regression (Degree 2),0.6413
+Wheat,Punjab,2030,2350.2,Polynomial Regression (Degree 2),0.6413
+Wheat,Punjab,2031,2353.82,Polynomial Regression (Degree 2),0.6413
+Wheat,Punjab,2032,2357.43,Polynomial Regression (Degree 2),0.6413
+Wheat,Punjab,2033,2361.03,Polynomial Regression (Degree 2),0.6413
+Wheat,Sindh,2024,4287.25,Lasso (Optimized),0.8615
+Wheat,Sindh,2025,4408.72,Lasso (Optimized),0.8615
+Wheat,Sindh,2026,4416.25,Lasso (Optimized),0.8615
+Wheat,Sindh,2027,4414.34,Lasso (Optimized),0.8615
+Wheat,Sindh,2028,4391.5,Lasso (Optimized),0.8615
+Wheat,Sindh,2029,4391.16,Lasso (Optimized),0.8615
+Wheat,Sindh,2030,4394.82,Lasso (Optimized),0.8615
+Wheat,Sindh,2031,4399.39,Lasso (Optimized),0.8615
+Wheat,Sindh,2032,4399.28,Lasso (Optimized),0.8615
+Wheat,Sindh,2033,4398.41,Lasso (Optimized),0.8615

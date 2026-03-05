@@ -1,9 +1,5 @@
 import logger from "../utils/logger.js";
 
-/**
- * Basic In-Memory Caching Service
- * To be replaced with Redis in production for horizontal scalability
- */
 class CacheService {
     constructor() {
         this.cache = new Map();

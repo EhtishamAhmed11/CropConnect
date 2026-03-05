@@ -113,6 +113,10 @@ export const addMarketPrice = async (req, res, next) => {
             source
         });
 
+        // Clear related caches
+        cache.delete("market_latest:{}");
+        cache.delete("market_highlights:{}");
+
         res.status(201).json({
             success: true,
             data: marketPrice

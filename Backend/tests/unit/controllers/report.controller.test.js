@@ -21,24 +21,25 @@ describe("Report Controller", () => {
   beforeEach(async () => {
     // Create a unique user for each test
     user = await createTestUser({
-      email: `user_${Date.now()}@example.com`,
+      email: `user_${Date.now()}@test.com`,
       role: "government_policy_maker",
     });
 
-    // Ensure unique province and crop type codes to avoid duplicates
-    province = await Province.create({
-      ...mockProvince,
-      code: `PB_${Date.now()}`,
-    });
-    cropType = await CropType.create({
-      ...mockCropType,
-      code: `WHEAT_${Date.now()}`,
-    });
+    const existingProvince = await Province.findOne({ $or: [{ code: mockProvince.code }, { name: mockProvince.name }] });
+    province = existingProvince || (await Province.create(mockProvince));
+
+    const existingCrop = await CropType.findOne({ $or: [{ code: mockCropType.code }, { name: mockCropType.name }] });
+    cropType = existingCrop || (await CropType.create(mockCropType));
+
+    // Isolation: clear existing production data for this specific province/crop
+    await ProductionData.deleteMany({ province: province._id, cropType: cropType._id });
 
     await ProductionData.create({
       ...mockProductionData,
       province: province._id,
+      provinceCode: province.code,
       cropType: cropType._id,
+      cropCode: cropType.code,
     });
   });
 

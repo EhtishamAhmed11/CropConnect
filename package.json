@@ -4,13 +4,13 @@
   "description": "",
   "main": "backend/index.js",
   "scripts": {
-    "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --forceExit",
     "test:watch": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "test:coverage": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-    "test:unit": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit",
-    "test:integration": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration",
-    "test:verbose": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose",
-    "start": "nodemon index.js"
+    "test:coverage": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --runInBand --forceExit",
+    "test:unit": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js Backend/tests/unit --runInBand --forceExit",
+    "test:integration": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js Backend/tests/integration --runInBand --forceExit",
+    "test:verbose": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose --runInBand --forceExit",
+    "start": "nodemon Backend/index.js"
   },
   "keywords": [],
   "author": "",
@@ -21,11 +21,13 @@
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.3",
+    "exceljs": "4.4.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.11",
+    "pdf-lib": "^1.17.1",
     "supertest": "^7.1.4",
     "uuid": "^13.0.0",
     "winston": "^3.19.0"

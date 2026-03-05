@@ -10,6 +10,7 @@ import {
   deleteReport,
   getScheduledReports,
   updateScheduledReport,
+  downloadReport,
 } from "../controllers/report.controller.js";
 import { protect, authorize } from "../middlewares/auth.js";
 
@@ -24,6 +25,9 @@ router.get("/scheduled", getScheduledReports);
 
 // Get single report
 router.get("/:id", getReportById);
+
+// Download report
+router.get("/:id/download", downloadReport);
 
 // Generate reports
 router.post("/generate", generateReport);

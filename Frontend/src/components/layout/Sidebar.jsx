@@ -24,6 +24,13 @@ const Sidebar = () => {
       color: "blue",
     },
     {
+      path: "/production/forecasting",
+      label: "Yield Forecasting",
+      icon: "🔮",
+      roles: ["admin", "government_policy_maker"],
+      color: "indigo",
+    },
+    {
       path: "/surplus-deficit",
       label: "Surplus/Deficit",
       icon: "📈",
@@ -87,6 +94,7 @@ const Sidebar = () => {
         orange: "bg-orange-50 text-orange-700 border-orange-500",
         indigo: "bg-indigo-50 text-indigo-700 border-indigo-500",
         teal: "bg-teal-50 text-teal-700 border-teal-500",
+        sky: "bg-sky-50 text-sky-700 border-sky-500",
         red: "bg-red-50 text-red-700 border-red-500",
       };
       return colors[item.color] || colors.emerald;

@@ -1,8 +1,21 @@
-// backend/controllers/report.controller.js
 import Report from "../models/report.model.js";
 import ProductionData from "../models/productionData.model.js";
 import SurplusDeficit from "../models/surplusDeficit.model.js";
 import ApiResponse from "../utils/apiResponse.js";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import ExcelJS from "exceljs";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const REPORTS_DIR = path.join(__dirname, "../public/reports");
+
+// Helper to ensure reports directory exists
+if (!fs.existsSync(REPORTS_DIR)) {
+  fs.mkdirSync(REPORTS_DIR, { recursive: true });
+}
 /**
  * @desc    Get all reports with filters and pagination
  * @route   GET /api/reports
@@ -193,6 +206,77 @@ export const generateProductionAnalysisReport = async (req, res, next) => {
       .populate("cropType", "name code category")
       .lean();
 
+    // Generate actual file
+    const reportFileName = `production-analysis-${year}-${Date.now()}.${format}`;
+    const filePath = path.join(REPORTS_DIR, reportFileName);
+
+    if (format === "pdf") {
+      const pdfDoc = await PDFDocument.create();
+      const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+      const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+
+      let page = pdfDoc.addPage();
+      const { width, height } = page.getSize();
+      let yOffset = height - 50;
+
+      const drawText = (text, size = 12, font = timesRomanFont) => {
+        if (yOffset < 50) {
+          page = pdfDoc.addPage();
+          yOffset = height - 50;
+        }
+        page.drawText(text, { x: 50, y: yOffset, size, font });
+        yOffset -= size + 10;
+      };
+
+      drawText("Production Analysis Report", 20, timesRomanBoldFont);
+      yOffset -= 10;
+      drawText(`Year: ${year}`, 14);
+      drawText(`Generated At: ${new Date().toLocaleString()}`, 14);
+      yOffset -= 10;
+      drawText(`Total Records: ${productionData.length}`, 14);
+      yOffset -= 20;
+
+      productionData.forEach((item, index) => {
+        drawText(`${index + 1}. ${item.cropType?.name || 'Unknown Crop'} in ${item.district?.name || 'Unknown District'}, ${item.province?.name || 'Unknown Province'}`, 12, timesRomanBoldFont);
+        drawText(`   Production: ${item.production.value} ${item.production.unit}`, 10);
+        drawText(`   Area: ${item.areaCultivated.value} ${item.areaCultivated.unit}`, 10);
+        yOffset -= 5;
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      fs.writeFileSync(filePath, pdfBytes);
+    } else if (format === "excel") {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Production Analysis");
+      sheet.columns = [
+        { header: "Province", key: "province", width: 20 },
+        { header: "District", key: "district", width: 20 },
+        { header: "Crop", key: "crop", width: 20 },
+        { header: "Production", key: "production", width: 15 },
+        { header: "Unit", key: "unit", width: 10 },
+        { header: "Area", key: "area", width: 15 },
+      ];
+
+      productionData.forEach(item => {
+        sheet.addRow({
+          province: item.province?.name,
+          district: item.district?.name,
+          crop: item.cropType?.name,
+          production: item.production.value,
+          unit: item.production.unit,
+          area: item.areaCultivated.value,
+        });
+      });
+      await workbook.xlsx.writeFile(filePath);
+    } else {
+      // Simple CSV
+      const headers = "Province,District,Crop,Production,Unit,Area\n";
+      const rows = productionData.map(item =>
+        `${item.province?.name},${item.district?.name},${item.cropType?.name},${item.production.value},${item.production.unit},${item.areaCultivated.value}`
+      ).join("\n");
+      fs.writeFileSync(filePath, headers + rows);
+    }
+
     // Create report record
     const report = await Report.create({
       reportId: `RPT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -208,9 +292,9 @@ export const generateProductionAnalysisReport = async (req, res, next) => {
       generatedBy: req.user._id,
       status: "completed",
       generatedAt: new Date(),
-      fileName: `production-analysis-${year}.${format}`,
-      fileUrl: `/reports/production-analysis-${year}.${format}`,
-      fileSize: JSON.stringify(productionData).length,
+      fileName: reportFileName,
+      fileUrl: `/reports/${reportFileName}`,
+      fileSize: fs.statSync(filePath).size,
     });
 
     return ApiResponse.created(
@@ -263,6 +347,78 @@ export const generateSurplusDeficitReport = async (req, res, next) => {
       .populate("cropType", "name code")
       .lean();
 
+    // Generate actual file
+    const reportFileName = `surplus-deficit-${year}-${Date.now()}.${format}`;
+    const filePath = path.join(REPORTS_DIR, reportFileName);
+
+    if (format === "pdf") {
+      const pdfDoc = await PDFDocument.create();
+      const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+      const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+
+      let page = pdfDoc.addPage();
+      const { width, height } = page.getSize();
+      let yOffset = height - 50;
+
+      const drawText = (text, size = 12, font = timesRomanFont) => {
+        if (yOffset < 50) {
+          page = pdfDoc.addPage();
+          yOffset = height - 50;
+        }
+        page.drawText(text, { x: 50, y: yOffset, size, font });
+        yOffset -= size + 10;
+      };
+
+      drawText("Surplus & Deficit Analysis Report", 20, timesRomanBoldFont);
+      yOffset -= 10;
+      drawText(`Year: ${year}`, 14);
+      drawText(`Generated At: ${new Date().toLocaleString()}`, 14);
+      yOffset -= 20;
+
+      surplusDeficitData.forEach((item, index) => {
+        drawText(`${index + 1}. ${item.cropType?.name} in ${item.district?.name}, ${item.province?.name}`, 12, timesRomanBoldFont);
+        drawText(`   Status: ${item.status.toUpperCase()}`, 10);
+        drawText(`   Production: ${item.production.toLocaleString()} tons`, 10);
+        drawText(`   Consumption: ${item.consumption.toLocaleString()} tons`, 10);
+        drawText(`   Balance: ${item.balance.toLocaleString()} tons`, 10);
+        yOffset -= 5;
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      fs.writeFileSync(filePath, pdfBytes);
+    } else if (format === "excel") {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Surplus Deficit");
+      sheet.columns = [
+        { header: "Province", key: "province", width: 20 },
+        { header: "District", key: "district", width: 20 },
+        { header: "Crop", key: "crop", width: 20 },
+        { header: "Status", key: "status", width: 15 },
+        { header: "Production (tons)", key: "production", width: 15 },
+        { header: "Consumption (tons)", key: "consumption", width: 15 },
+        { header: "Balance (tons)", key: "balance", width: 15 },
+      ];
+
+      surplusDeficitData.forEach(item => {
+        sheet.addRow({
+          province: item.province?.name,
+          district: item.district?.name,
+          crop: item.cropType?.name,
+          status: item.status,
+          production: item.production,
+          consumption: item.consumption,
+          balance: item.balance,
+        });
+      });
+      await workbook.xlsx.writeFile(filePath);
+    } else {
+      const headers = "Province,District,Crop,Status,Production,Consumption,Balance\n";
+      const rows = surplusDeficitData.map(item =>
+        `${item.province?.name},${item.district?.name},${item.cropType?.name},${item.status},${item.production},${item.consumption},${item.balance}`
+      ).join("\n");
+      fs.writeFileSync(filePath, headers + rows);
+    }
+
     // Create report record
     const report = await Report.create({
       reportId: `RPT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -277,9 +433,9 @@ export const generateSurplusDeficitReport = async (req, res, next) => {
       generatedBy: req.user._id,
       status: "completed",
       generatedAt: new Date(),
-      fileName: `surplus-deficit-${year}.${format}`,
-      fileUrl: `/reports/surplus-deficit-${year}.${format}`,
-      fileSize: JSON.stringify(surplusDeficitData).length,
+      fileName: reportFileName,
+      fileUrl: `/reports/${reportFileName}`,
+      fileSize: fs.statSync(filePath).size,
     });
 
     // Calculate summary
@@ -428,6 +584,43 @@ export const updateScheduledReport = async (req, res, next) => {
       report,
       "Scheduled report updated successfully"
     );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Download report file
+ * @route   GET /api/reports/:id/download
+ * @access  Private
+ */
+export const downloadReport = async (req, res, next) => {
+  try {
+    const report = await Report.findById(req.params.id);
+
+    if (!report) {
+      return ApiResponse.error(res, "Report not found", 404);
+    }
+
+    // Check authorization
+    if (
+      req.user.role !== "admin" &&
+      report.generatedBy.toString() !== req.user._id.toString()
+    ) {
+      return ApiResponse.error(res, "Not authorized to download this report", 403);
+    }
+
+    if (report.status !== "completed") {
+      return ApiResponse.error(res, "Report is not ready for download", 400);
+    }
+
+    const filePath = path.join(REPORTS_DIR, report.fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return ApiResponse.error(res, "Report file not found on server", 404);
+    }
+
+    res.download(filePath, report.fileName);
   } catch (error) {
     next(error);
   }

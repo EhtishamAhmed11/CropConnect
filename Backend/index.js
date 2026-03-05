@@ -20,6 +20,7 @@ import weatherRoutes from "./routes/weather.routes.js";
 import marketRoutes from "./routes/market.routes.js";
 import priceThresholdRoutes from "./routes/priceThreshold.routes.js";
 import tollThresholdRoutes from "./routes/tollThreshold.routes.js";
+import predictionRoutes from "./routes/prediction.routes.js";
 import setupScheduler from "./scheduler.js";
 import runAllSeeds from "./seeds/runAllSeeds.js";
 import seedProvinces from "./seeds/01-provinces.seed.js";
@@ -58,6 +59,7 @@ app.use("/api/weather", weatherRoutes);
 app.use("/api/market", marketRoutes);
 app.use("/api/price-thresholds", priceThresholdRoutes);
 app.use("/api/toll-thresholds", tollThresholdRoutes);
+app.use("/api/predictions", predictionRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date() });

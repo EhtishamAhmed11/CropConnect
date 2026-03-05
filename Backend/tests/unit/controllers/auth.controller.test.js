@@ -11,10 +11,11 @@ import { jest } from "@jest/globals";
 describe("Auth Controller", () => {
   describe("register", () => {
     it("should register a new user with valid data", async () => {
+      const uniqueSuffix = Date.now();
       const req = createMockReq({
         body: {
-          username: "newuser",
-          email: "newuser@example.com",
+          username: `newuser_${uniqueSuffix}`,
+          email: `newuser_${uniqueSuffix}@example.com`,
           password: "NewPass123",
           fullName: "New User",
         },
@@ -30,9 +31,9 @@ describe("Auth Controller", () => {
           success: true,
           data: expect.objectContaining({
             user: expect.objectContaining({
-              email: "newuser@example.com",
+              email: `newuser_${uniqueSuffix}@example.com`,
             }),
-            token: expect.any(String),
+            accessToken: expect.any(String),
           }),
         })
       );
@@ -63,17 +64,19 @@ describe("Auth Controller", () => {
   });
 
   describe("login", () => {
+    let testEmail;
     beforeEach(async () => {
+      testEmail = `login_${Date.now()}@example.com`;
       await createTestUser({
-        email: "login@example.com",
-        username: "loginuser",
+        email: testEmail,
+        username: `loginuser_${Date.now()}`,
       });
     });
 
     it("should login with valid credentials", async () => {
       const req = createMockReq({
         body: {
-          email: "login@example.com",
+          email: testEmail,
           password: "TestPass123",
         },
       });
@@ -87,7 +90,7 @@ describe("Auth Controller", () => {
         expect.objectContaining({
           success: true,
           data: expect.objectContaining({
-            token: expect.any(String),
+            accessToken: expect.any(String),
           }),
         })
       );

@@ -8,17 +8,7 @@ import District from "../models/district.model.js";
 export const getDistrictWeather = async (req, res, next) => {
     try {
         const { identifier } = req.params;
-        let district;
-
-        // Try to find by ID first
-        if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
-            district = await District.findById(identifier);
-        }
-
-        // If not found, try by code
-        if (!district) {
-            district = await District.findOne({ code: identifier.toUpperCase() });
-        }
+        const district = await findDistrict(identifier);
 
         if (!district) {
             return res.status(404).json({ success: false, message: "District not found" });
@@ -37,9 +27,40 @@ export const getDistrictWeather = async (req, res, next) => {
     }
 };
 
+// @desc    Get weather forecast for a district (current + 7-day)
+// @route   GET /api/weather/forecast/:identifier
+// @access  Public
+export const getDistrictForecast = async (req, res, next) => {
+    try {
+        const { identifier } = req.params;
+        const district = await findDistrict(identifier);
+
+        if (!district) {
+            return res.status(404).json({ success: false, message: "District not found" });
+        }
+
+        const forecastData = await WeatherService.getForecastForDistrict(district._id);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                district: {
+                    id: district._id,
+                    name: district.name,
+                    code: district.code
+                },
+                ...forecastData
+            }
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Trigger explicit update for a district
 // @route   POST /api/weather/update/:id
-// @access  Admin/System (Protected usually, keeping open for demo)
+// @access  Admin/System
 export const updateWeather = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -82,22 +103,7 @@ export const updateAllWeather = async (req, res, next) => {
 export const getDistrictWeatherHistory = async (req, res, next) => {
     try {
         const { identifier } = req.params;
-        let district;
-
-        // Try to find by ID first
-        if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
-            district = await District.findById(identifier);
-        }
-
-        // If not found, try by code (e.g. LHR)
-        if (!district) {
-            district = await District.findOne({ code: identifier.toUpperCase() });
-        }
-
-        // If still not found, try by Name regex
-        if (!district) {
-            district = await District.findOne({ name: { $regex: new RegExp(identifier, "i") } });
-        }
+        const district = await findDistrict(identifier);
 
         if (!district) {
             return res.status(404).json({ success: false, message: "District not found" });
@@ -117,3 +123,25 @@ export const getDistrictWeatherHistory = async (req, res, next) => {
         next(error);
     }
 };
+
+// Helper: Find district by ID, code, or name
+async function findDistrict(identifier) {
+    let district = null;
+
+    // Try to find by ID first
+    if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
+        district = await District.findById(identifier);
+    }
+
+    // If not found, try by code
+    if (!district) {
+        district = await District.findOne({ code: identifier.toUpperCase() });
+    }
+
+    // If still not found, try by name regex
+    if (!district) {
+        district = await District.findOne({ name: { $regex: new RegExp(identifier, "i") } });
+    }
+
+    return district;
+}

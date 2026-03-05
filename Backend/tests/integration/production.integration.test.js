@@ -1,26 +1,49 @@
 import request from "supertest";
-import app from "../../app.js";
-import CropType from "../../models/cropType.model";
-import Province from "../../models/province.model";
+import app from "../../index.js";
+import CropType from "../../models/cropType.model.js";
+import Province from "../../models/province.model.js";
 import {
   mockCropType,
   mockProductionData,
   mockProvince,
-} from "../helpers/mockData";
-import { createTestUser, generateToken } from "../helpers/testHelpers";
+} from "../helpers/mockData.js";
+import { createTestUser, generateToken } from "../helpers/testHelpers.js";
 
 describe("Production Data Integration Tests", () => {
   let adminToken, province, cropType;
 
   beforeAll(async () => {
-    const admin = await createTestUser({
-      role: "admin",
-      email: "admin@test.com",
-    });
-    adminToken = generateToken(admin._id);
+    try {
+      const admin = await createTestUser({
+        role: "admin",
+        email: `admin_${Date.now()}@test.com`,
+      });
+      adminToken = generateToken(admin._id);
 
-    province = await Province.create(mockProvince);
-    cropType = await CropType.create(mockCropType);
+      const existingProvince = await Province.findOne({ $or: [{ code: mockProvince.code }, { name: mockProvince.name }] });
+      if (existingProvince) {
+        province = existingProvince;
+      } else {
+        try {
+          province = await Province.create(mockProvince);
+        } catch (e) {
+          province = await Province.findOne({ code: mockProvince.code });
+        }
+      }
+
+      const existingCrop = await CropType.findOne({ $or: [{ code: mockCropType.code }, { name: mockCropType.name }] });
+      if (existingCrop) {
+        cropType = existingCrop;
+      } else {
+        try {
+          cropType = await CropType.create(mockCropType);
+        } catch (e) {
+          cropType = await CropType.findOne({ code: mockCropType.code });
+        }
+      }
+    } catch (error) {
+      console.error("Setup failed", error);
+    }
   });
 
   describe("Complete Production Data Workflow", () => {

@@ -20,6 +20,7 @@ import ProductionList from "./pages/production/ProductionList";
 import ProductionDetails from "./pages/production/ProductionDetails";
 import ProductionAnalysis from "./pages/production/ProductionAnalysis";
 import ProductionTrends from "./pages/production/ProductionTrends";
+import YieldForecasting from "./pages/production/YieldForecasting";
 
 // Surplus/Deficit
 import Calculate from "./pages/surplus/Calculate";
@@ -126,6 +127,16 @@ function App() {
                   allowedRoles={["admin", "government_policy_maker"]}
                 >
                   <ProductionTrends />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/production/forecasting"
+              element={
+                <ProtectedRoute
+                  allowedRoles={["admin", "government_policy_maker"]}
+                >
+                  <YieldForecasting />
                 </ProtectedRoute>
               }
             />

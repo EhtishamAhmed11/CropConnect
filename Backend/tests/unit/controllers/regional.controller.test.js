@@ -10,15 +10,22 @@ describe('Regional Controller', () => {
   let province1, province2, district, cropType;
 
   beforeEach(async () => {
-    province1 = await Province.create({ ...mockProvince, code: 'PB', name: 'Punjab' });
-    province2 = await Province.create({ 
-      ...mockProvince, 
-      code: 'SD', 
+    const existingP1 = await Province.findOne({ $or: [{ code: 'PB' }, { name: 'Punjab' }] });
+    province1 = existingP1 || (await Province.create({ ...mockProvince, code: 'PB', name: 'Punjab' }));
+
+    const existingP2 = await Province.findOne({ $or: [{ code: 'SD' }, { name: 'Sindh' }] });
+    province2 = existingP2 || (await Province.create({
+      ...mockProvince,
+      code: 'SD',
       name: 'Sindh',
-      population: 47000000 
-    });
-    district = await District.create({ ...mockDistrict, province: province1._id });
-    cropType = await CropType.create(mockCropType);
+      population: 47000000
+    }));
+
+    const existingDistrict = await District.findOne({ code: mockDistrict.code });
+    district = existingDistrict || (await District.create({ ...mockDistrict, province: province1._id }));
+
+    const existingCrop = await CropType.findOne({ $or: [{ code: mockCropType.code }, { name: mockCropType.name }] });
+    cropType = existingCrop || (await CropType.create(mockCropType));
 
     await ProductionData.create([
       {

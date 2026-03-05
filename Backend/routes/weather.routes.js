@@ -4,6 +4,7 @@ import * as weatherController from "../controllers/weather.controller.js";
 const router = express.Router();
 
 router.get("/district/:identifier", weatherController.getDistrictWeather);
+router.get("/forecast/:identifier", weatherController.getDistrictForecast);
 router.get("/history/:identifier", weatherController.getDistrictWeatherHistory);
 router.post("/update-all", weatherController.updateAllWeather);
 router.post("/update/:id", weatherController.updateWeather);

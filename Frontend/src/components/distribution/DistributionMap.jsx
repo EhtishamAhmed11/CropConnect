@@ -17,7 +17,7 @@ import {
     InputLabel,
     Alert
 } from "@mui/material";
-import { Map as MapIcon, Truck } from "lucide-react";
+import { Map as MapIcon, Truck, ArrowRight, DollarSign, Route, MapPin } from "lucide-react";
 import { gisAPI } from "../../api/gisAPI";
 
 // Fix Leaflet Default Icon Issue
@@ -28,7 +28,10 @@ L.Icon.Default.mergeOptions({
     shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-const RouteArrow = ({ route, map }) => {
+// Persistent GeoJSON cache (survives re-renders, cleared on page navigation)
+let cachedGeoJson = null;
+
+const RouteArrow = ({ route, map, index }) => {
     useEffect(() => {
         if (!map) return;
 
@@ -64,29 +67,30 @@ const RouteArrow = ({ route, map }) => {
             color: '#60a5fa'
         });
 
+        // Simplified tooltip for non-technical users
         line.bindTooltip(`
-            <div class="p-3 bg-slate-900 text-white rounded shadow-lg min-w-[220px] font-sans">
+            <div class="p-3 bg-slate-900 text-white rounded-lg shadow-lg min-w-[220px] font-sans">
                 <div class="flex items-center gap-2 mb-2 border-b border-slate-700 pb-2">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-blue-400">Logistics Vector</span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-blue-400">Shipment Route #${index + 1}</span>
                 </div>
                 <div class="flex justify-between items-center mb-3">
-                     <span class="font-bold text-sm">${route.sourceName}</span>
-                     <span class="text-xs text-slate-500 mx-2">➜</span>
+                     <span class="font-bold text-sm text-green-400">${route.sourceName}</span>
+                     <span class="text-xs text-slate-500 mx-2">→</span>
                      <span class="font-bold text-sm text-red-400">${route.destName}</span>
                 </div>
                 
                 <div class="space-y-2 text-xs">
                     <div class="flex justify-between">
-                        <span class="text-slate-400">Payload</span>
-                        <span class="font-bold text-blue-300">📦 ${Math.round(route.amount).toLocaleString()} t</span>
+                        <span class="text-slate-400">Amount to Send</span>
+                        <span class="font-bold text-blue-300">${Math.round(route.amount).toLocaleString()} tonnes</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Distance</span>
-                        <span class="font-bold">📏 ${Math.round(route.distance)} km</span>
+                        <span class="font-bold">${Math.round(route.distance)} km</span>
                     </div>
                     <div class="pt-1 border-t border-slate-700/50 mt-1">
                         <div class="flex justify-between text-[10px] mb-1">
-                            <span class="text-slate-500 uppercase">Transport Cost</span>
+                            <span class="text-slate-500 uppercase">Shipping Cost</span>
                             <span>PKR ${route.costs?.transport?.toLocaleString() || 0}</span>
                         </div>
                         <div class="flex justify-between text-[10px] mb-2">
@@ -103,12 +107,12 @@ const RouteArrow = ({ route, map }) => {
         `, { sticky: true, className: "bg-transparent border-0 shadow-none" });
 
         return () => { if (map) map.removeLayer(line); };
-    }, [map, route]);
+    }, [map, route, index]);
     return null;
 };
 
 const DistributionMap = () => {
-    const [geoJsonData, setGeoJsonData] = useState(null);
+    const [geoJsonData, setGeoJsonData] = useState(cachedGeoJson);
     const [surplusData, setSurplusData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [optimizing, setOptimizing] = useState(false);
@@ -124,15 +128,18 @@ const DistributionMap = () => {
     const [mapInstance, setMapInstance] = useState(null);
     const geoJsonRef = useRef();
 
-    // Load GeoJSON and Data
+    // Load GeoJSON (cached) and Data
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // 1. Get District Boundaries (GeoJSON) - Only if not loaded
-                if (!geoJsonData) {
+                // 1. Get District Boundaries (GeoJSON) — Only if not cached
+                if (!cachedGeoJson) {
                     const geoRes = await gisAPI.getDistrictsGeoJSON({ province: "" });
-                    if (geoRes.data.success) setGeoJsonData(geoRes.data.data);
+                    if (geoRes.data.success) {
+                        cachedGeoJson = geoRes.data.data;
+                        setGeoJsonData(geoRes.data.data);
+                    }
                 }
 
                 // 2. Get Surplus/Deficit Data for Coloring
@@ -195,21 +202,20 @@ const DistributionMap = () => {
         let fillOpacity = 0.5;
 
         if (viewMode === 'simulate') {
-            if (props.status === "surplus") { fillColor = "#dcfce7"; fillOpacity = 0.4; } // Very light green
-            if (props.status === "deficit") { fillColor = "#fee2e2"; fillOpacity = 0.4; } // Very light red
+            if (props.status === "surplus") { fillColor = "#dcfce7"; fillOpacity = 0.4; }
+            if (props.status === "deficit") { fillColor = "#fee2e2"; fillOpacity = 0.4; }
         } else {
             if (props.status) {
-                // Determine color based on severity if deficit
                 if (props.status === 'deficit') {
-                    if (props.severity === 'critical') fillColor = "#ef4444"; // Red 500
-                    else if (props.severity === 'high') fillColor = "#f87171"; // Red 400
-                    else fillColor = "#fca5a5"; // Red 300
+                    if (props.severity === 'critical') fillColor = "#ef4444";
+                    else if (props.severity === 'high') fillColor = "#f87171";
+                    else fillColor = "#fca5a5";
                 } else if (props.status === 'surplus') {
-                    fillColor = "#10b981"; // Emerald 500
+                    fillColor = "#10b981";
                 } else if (props.status === 'balanced') {
-                    fillColor = "#f59e0b"; // Amber 500
+                    fillColor = "#f59e0b";
                 } else if (props.status === 'production_only') {
-                    fillColor = "#3b82f6"; // Blue 500
+                    fillColor = "#3b82f6";
                 }
                 fillOpacity = 0.75;
             }
@@ -229,27 +235,23 @@ const DistributionMap = () => {
         const p = feature.properties;
         if (p.name) {
             const isCalculated = p.status !== 'production_only';
+            const statusLabel = p.status === 'production_only' ? 'Production Data Only' : (p.status || 'No Data');
+            const statusColor = p.status === 'surplus' ? 'text-green-400' :
+                p.status === 'deficit' ? 'text-red-400' :
+                    p.status === 'production_only' ? 'text-blue-400' : 'text-orange-400';
+
             const tooltipContent = `
                 <div class="p-3 bg-slate-900 text-white rounded shadow-lg min-w-[200px] font-sans">
                     <h3 class="font-bold text-sm mb-2 border-b border-slate-700 pb-1">${p.name}</h3>
                     <div class="space-y-2 text-xs">
                         <div class="flex justify-between">
-                            <span class="text-slate-400">Analysis Type</span>
-                            <span class="font-bold uppercase ${isCalculated ? 'text-indigo-400' : 'text-blue-400'}">
-                                ${isCalculated ? 'CALCULATED' : 'ESTIMATED'}
-                            </span>
-                        </div>
-                        <div class="flex justify-between">
                             <span class="text-slate-400">Status</span>
-                            <span class="font-bold uppercase ${p.status === 'surplus' ? 'text-green-400' :
-                    p.status === 'deficit' ? 'text-red-400' :
-                        p.status === 'production_only' ? 'text-blue-400' : 'text-orange-400'
-                }">${p.status === 'production_only' ? 'Production' : p.status || 'No Data'}</span>
+                            <span class="font-bold uppercase ${statusColor}">${statusLabel}</span>
                         </div>
                          ${p.balance ? `
                          <div class="flex justify-between">
-                            <span class="text-slate-400">Balance</span>
-                            <span class="font-mono">${Math.round(p.balance).toLocaleString()} t</span>
+                            <span class="text-slate-400">${p.balance > 0 ? 'Surplus' : 'Shortfall'}</span>
+                            <span class="font-mono font-bold ${p.balance > 0 ? 'text-green-400' : 'text-red-400'}">${Math.abs(Math.round(p.balance)).toLocaleString()} tonnes</span>
                         </div>` : ''}
                         ${p.production ? `
                         <div class="flex justify-between">
@@ -278,11 +280,11 @@ const DistributionMap = () => {
     return (
         <div className="h-full w-full relative overflow-hidden bg-slate-50 font-['Outfit']">
 
-            {/* 1. Header Control Panel (Glass) */}
+            {/* 1. Header Control Panel */}
             <div className="absolute top-4 left-4 z-[401] flex flex-col gap-4 max-w-sm pointer-events-none">
                 <div className="glass-panel p-6 rounded-[2rem] pointer-events-auto interactive-premium">
                     <Typography variant="overline" className="text-slate-500 font-bold tracking-wider">
-                        MISSION CONTROL
+                        DISTRIBUTION PLANNER
                     </Typography>
                     <Typography variant="h5" className="font-bold text-slate-800 flex items-center gap-2 mb-4">
                         <MapIcon className="text-blue-600" /> Supply Chain
@@ -327,11 +329,11 @@ const DistributionMap = () => {
                     </div>
                 </div>
 
-                {/* 2. Live Intelligence Stats (Glass Dark) */}
+                {/* 2. Stats Panel */}
                 {(routeStats || viewMode !== 'simulate') && surplusData.length > 0 && (
                     <div className="glass-panel-dark p-6 rounded-[2rem] pointer-events-auto animate-in fade-in slide-in-from-left-4 duration-700">
                         <Typography variant="overline" className="text-slate-400 font-bold tracking-wider mb-2 block">
-                            LIVE INTELLIGENCE
+                            QUICK OVERVIEW
                         </Typography>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -339,30 +341,29 @@ const DistributionMap = () => {
                                 <p className="text-xs text-slate-400">Total Deficit</p>
                                 <p className="text-xl font-bold text-red-400">
                                     -{routeStats ? (Math.round(routeStats.totalDeficit || 0) / 1000).toFixed(1) :
-                                        (surplusData.filter(d => d.status === 'deficit').reduce((acc, curr) => acc + Math.abs(curr.balance || 0), 0) / 1000).toFixed(1)}k <span className="text-xs">tons</span>
+                                        (surplusData.filter(d => d.status === 'deficit').reduce((acc, curr) => acc + Math.abs(curr.balance || 0), 0) / 1000).toFixed(1)}k <span className="text-xs">tonnes</span>
                                 </p>
                             </div>
                             <div className="bg-slate-800/50 p-3 rounded-xl border border-white/5">
-                                <p className="text-xs text-slate-400">Available Surplus</p>
+                                <p className="text-xs text-slate-400">Total Surplus</p>
                                 <p className="text-xl font-bold text-green-400">
                                     +{routeStats ? (Math.round(routeStats.totalSurplus || 0) / 1000).toFixed(1) :
-                                        (surplusData.filter(d => d.status === 'surplus').reduce((acc, curr) => acc + (curr.balance || 0), 0) / 1000).toFixed(1)}k <span className="text-xs">tons</span>
+                                        (surplusData.filter(d => d.status === 'surplus').reduce((acc, curr) => acc + (curr.balance || 0), 0) / 1000).toFixed(1)}k <span className="text-xs">tonnes</span>
                                 </p>
                             </div>
 
                             {viewMode === 'simulate' && routeStats && (
                                 <div className="col-span-2 bg-slate-800/50 p-3 rounded-xl border border-white/5 flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs text-slate-400">Grand Logistics Cost</p>
+                                        <p className="text-xs text-slate-400">Total Logistics Cost</p>
                                         <p className="text-lg font-black text-amber-400 leading-none mt-1">
                                             PKR {routeStats.grandTotalCost?.toLocaleString() || routeStats.totalTollCost?.toLocaleString() || 0}
                                         </p>
-                                        <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Tolls + Transport</p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-xs text-slate-400">Deficit Covered</p>
                                         <p className="text-lg font-black text-blue-400 leading-none mt-1">{routeStats.coveragePercent || 0}%</p>
-                                        <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">{routeStats.routeCount || 0} Active Lines</p>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">{routeStats.routeCount || 0} Routes</p>
                                     </div>
                                 </div>
                             )}
@@ -370,6 +371,50 @@ const DistributionMap = () => {
                     </div>
                 )}
             </div>
+
+            {/* Route Summary Panel (Right Side) — only in simulate mode */}
+            {viewMode === 'simulate' && optimizedRoutes.length > 0 && !optimizing && (
+                <div className="absolute top-4 right-4 z-[401] w-80 max-h-[calc(100vh-8rem)] overflow-y-auto pointer-events-auto">
+                    <div className="glass-panel p-4 rounded-2xl bg-white/95 backdrop-blur shadow-xl border border-white/20">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Route size={16} className="text-indigo-600" />
+                            <h3 className="font-bold text-slate-800 text-sm">Shipment Routes ({optimizedRoutes.length})</h3>
+                        </div>
+                        <p className="text-xs text-slate-500 mb-3">
+                            Routes showing how surplus from green zones can cover deficit in red zones.
+                        </p>
+
+                        <div className="space-y-2">
+                            {optimizedRoutes.map((route, i) => (
+                                <div key={route.id || i} className="bg-slate-50 rounded-xl p-3 border border-slate-100 hover:bg-blue-50 transition-colors">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">#{i + 1}</span>
+                                        <div className="flex items-center gap-1 text-xs font-bold flex-1 min-w-0">
+                                            <span className="text-green-600 truncate">{route.sourceName}</span>
+                                            <ArrowRight size={12} className="text-slate-400 flex-shrink-0" />
+                                            <span className="text-red-600 truncate">{route.destName}</span>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-[10px]">
+                                        <div>
+                                            <p className="text-slate-400 uppercase font-bold">Amount</p>
+                                            <p className="font-bold text-slate-700">{Math.round(route.amount).toLocaleString()} t</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-400 uppercase font-bold">Distance</p>
+                                            <p className="font-bold text-slate-700">{Math.round(route.distance)} km</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-400 uppercase font-bold">Cost</p>
+                                            <p className="font-bold text-amber-600">PKR {(route.costs?.total || 0).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Map Area */}
             <MapContainer
@@ -396,8 +441,8 @@ const DistributionMap = () => {
                     />
                 )}
 
-                {viewMode === 'simulate' && optimizedRoutes.map((route) => (
-                    <RouteArrow key={route.id} route={route} map={mapInstance} />
+                {viewMode === 'simulate' && optimizedRoutes.map((route, i) => (
+                    <RouteArrow key={route.id} route={route} map={mapInstance} index={i} />
                 ))}
             </MapContainer>
 
@@ -406,8 +451,8 @@ const DistributionMap = () => {
                 <div className="absolute inset-0 z-[500] bg-black/20 backdrop-blur-sm flex items-center justify-center">
                     <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center animate-in zoom-in duration-300">
                         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <h3 className="font-bold text-slate-800">Calculating Logistics...</h3>
-                        <p className="text-slate-500 text-sm">Optimizing supply chain routes</p>
+                        <h3 className="font-bold text-slate-800">Calculating Routes...</h3>
+                        <p className="text-slate-500 text-sm">Finding the best supply chain paths</p>
                     </div>
                 </div>
             )}
@@ -415,7 +460,7 @@ const DistributionMap = () => {
             {/* Floating Legend (Bottom Right) */}
             <div className="absolute bottom-6 right-6 z-[400] glass-panel p-4 rounded-xl max-w-xs transition-all hover:scale-105 bg-white/90 backdrop-blur shadow-xl border border-white/20">
                 <Typography variant="subtitle2" className="font-bold mb-2 text-slate-700">
-                    {viewMode === 'surplus' ? 'Regional Balance' : 'Logistics Plan'}
+                    {viewMode === 'surplus' ? 'What the Colors Mean' : 'Route Legend'}
                 </Typography>
 
                 {viewMode === 'simulate' ? (
@@ -425,25 +470,37 @@ const DistributionMap = () => {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-3 w-8 bg-blue-500"></span>
                             </span>
-                            <span className="text-xs font-medium text-slate-600">Active Supply Lines</span>
+                            <span className="text-xs font-medium text-slate-600">Shipment Routes</span>
                         </div>
-                        <p className="text-xs text-slate-500 leading-relaxed">
-                            Ai-optimized routes moving <b>{routeStats ? Math.round(routeStats.coveredDeficit / 1000) : 0}k tons</b> to balance deficits.
+                        <div className="flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-green-200 border border-green-400"></span>
+                            <span className="text-xs font-medium text-slate-600">Source (has surplus)</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-red-200 border border-red-400"></span>
+                            <span className="text-xs font-medium text-slate-600">Destination (needs supply)</span>
+                        </div>
+                        <p className="text-xs text-slate-500 leading-relaxed mt-2">
+                            Routes show how <b>surplus regions</b> can ship food to <b>deficit regions</b>. Hover over a route for details.
                         </p>
                     </div>
                 ) : (
                     <div className="space-y-2 text-xs">
                         <div className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm shadow-green-200"></span>
-                            <span className="text-slate-600">Surplus Region</span>
+                            <span className="text-slate-600">Surplus — produces more than needed</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full bg-orange-400 shadow-sm shadow-orange-200"></span>
-                            <span className="text-slate-600">Balanced</span>
+                            <span className="text-slate-600">Balanced — production meets demand</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-200"></span>
-                            <span className="text-slate-600">Deficit Region</span>
+                            <span className="text-slate-600">Deficit — needs more supply</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm shadow-blue-200"></span>
+                            <span className="text-slate-600">Production data only (no consumption data)</span>
                         </div>
                     </div>
                 )}

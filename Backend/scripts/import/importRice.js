@@ -1,5 +1,4 @@
 import path from "path";
-
 import CSVImporter from "./csvImporter.js";
 import ProductionData from "../../models/productionData.model.js";
 import Province from "../../models/province.model.js";
@@ -7,14 +6,19 @@ import District from "../../models/district.model.js";
 import CropType from "../../models/cropType.model.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import * as AlertService from "../../services/alert.service.js";
+import { checkYieldAnomaly } from "../../services/anomalyDetection.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const importRice = async () => {
+  let ingestionLogId = null;
   try {
     console.log("🌾 Starting Rice Production Data Import...");
-    console.log("");
+
+    // 1. Log Ingestion Start
+    ingestionLogId = await AlertService.logIngestionStart("CSV Import", "Production Data (Rice)");
 
     const csvPath = path.join(
       __dirname,
@@ -24,9 +28,6 @@ const importRice = async () => {
     const importer = new CSVImporter(csvPath, "RICE");
     await importer.parseCSV();
 
-    importer.displayStats();
-    importer.displayErrors(10);
-
     const validData = importer.getResults();
 
     if (validData.length === 0) {
@@ -34,14 +35,9 @@ const importRice = async () => {
     }
 
     console.log("\nStep 2: Loading reference data...");
-
     const provinces = await Province.find({});
     const districts = await District.find({});
     const cropTypes = await CropType.find({});
-
-    console.log(`  Found ${provinces.length} provinces`);
-    console.log(`  Found ${districts.length} districts`);
-    console.log(`  Found ${cropTypes.length} crop types`);
 
     // Create lookup maps
     const provinceMap = {};
@@ -64,103 +60,59 @@ const importRice = async () => {
 
     // Step 3: Transform data for MongoDB
     console.log("\nStep 3: Transforming data...");
-
     const productionRecords = [];
     let transformErrors = 0;
 
-    validData.forEach((row, index) => {
+    // Fetch existing data for anomaly detection (previous year comparison)
+    const previousData = await ProductionData.find({ cropCode: "RICE" }).lean();
+    const anomalies = [];
+
+    for (const [index, row] of validData.entries()) {
       try {
-        // Parse crop year
+        // ... (Existing transformation logic)
         const yearParts = row.year.split("-");
         const startYear = parseInt(yearParts[0]);
         const endYear = parseInt(`20${yearParts[1]}`);
 
-        // Determine level
         let level = "national";
-        if (
-          row.province &&
-          row.province !== "Pakistan" &&
-          row.province !== "National"
-        ) {
-          level =
-            row.district &&
-            row.district !== "All Districts" &&
-            row.district !== "Provincial Total"
-              ? "district"
-              : "provincial";
+        if (row.province && row.province !== "Pakistan" && row.province !== "National") {
+          level = row.district && row.district !== "All Districts" && row.district !== "Provincial Total" ? "district" : "provincial";
         }
 
-        // Get province ID
         let provinceId = null;
         let provinceCode = null;
-        if (
-          row.province &&
-          row.province !== "Pakistan" &&
-          row.province !== "National"
-        ) {
+        if (row.province && row.province !== "Pakistan" && row.province !== "National") {
           provinceId = provinceMap[row.province];
           const province = provinces.find((p) => p._id.equals(provinceId));
           provinceCode = province?.code;
         }
 
-        // Get district ID
         let districtId = null;
         let districtCode = null;
         if (level === "district" && row.district) {
-          districtId =
-            districtMap[row.district] ||
-            districtMap[`${provinceCode}-${row.district}`];
+          districtId = districtMap[row.district] || districtMap[`${provinceCode}-${row.district}`];
           const district = districts.find((d) => d._id.equals(districtId));
           districtCode = district?.code;
         }
 
-        // Get crop type ID
         const cropTypeId = cropMap["RICE"];
-
         if (!cropTypeId) {
-          console.warn(
-            `  Warning: RICE crop type not found, skipping row ${index + 1}`
-          );
           transformErrors++;
-          return;
+          continue;
         }
 
-        // Determine if forecast
         const isForecast = row.year === "2024-25" || false;
-
-        // Map data source to enum value
         const dataSourceText = row.dataSource || "CSV Import";
         let dataSourceEnum = "Other";
-        let dataSourceDetails = dataSourceText;
 
-        if (
-          dataSourceText.includes("USDA FAS") ||
-          dataSourceText.includes("USDA_FAS")
-        ) {
-          dataSourceEnum = "USDA_FAS";
-        } else if (dataSourceText.includes("Economic Survey")) {
-          dataSourceEnum = "Economic_Survey";
-        } else if (dataSourceText.includes("PCGA")) {
-          dataSourceEnum = "PCGA";
-        } else if (dataSourceText.includes("PBS")) {
-          dataSourceEnum = "PBS";
-        } else if (dataSourceText.includes("MNFSR")) {
-          dataSourceEnum = "MNFSR";
-        } else if (
-          dataSourceText.includes("Provincial") ||
-          dataSourceText.includes("CRS")
-        ) {
-          dataSourceEnum = "Provincial_CRS";
-        } else if (dataSourceText.includes("Estimated")) {
-          dataSourceEnum = "Estimated";
-        }
+        if (dataSourceText.includes("USDA")) dataSourceEnum = "USDA_FAS";
+        else if (dataSourceText.includes("Economic Survey")) dataSourceEnum = "Economic_Survey";
+        else if (dataSourceText.includes("PBS")) dataSourceEnum = "PBS";
+        else if (dataSourceText.includes("Provincial")) dataSourceEnum = "Provincial_CRS";
 
         const record = {
           year: row.year,
-          cropYear: {
-            startYear,
-            endYear,
-          },
+          cropYear: { startYear, endYear },
           level,
           province: provinceId,
           provinceCode,
@@ -169,130 +121,90 @@ const importRice = async () => {
           cropType: cropTypeId,
           cropCode: "RICE",
           cropName: "Rice",
-          areaCultivated: {
-            value: row.area,
-            unit: "hectares",
-          },
-          production: {
-            value: row.production,
-            unit: "tonnes",
-          },
-          yield: {
-            value: row.yield,
-            unit: "tonnes_per_hectare",
-          },
+          areaCultivated: { value: row.area, unit: "hectares" },
+          production: { value: row.production, unit: "tonnes" },
+          yield: { value: row.yield, unit: "tonnes_per_hectare" },
           dataSource: dataSourceEnum,
-          dataSourceDetails: dataSourceDetails,
+          dataSourceDetails: dataSourceText,
           isEstimated: dataSourceText.includes("Estimated") || false,
           isForecast: isForecast,
-          reliability:
-            dataSourceEnum === "USDA_FAS" ||
-            dataSourceEnum === "Economic_Survey"
-              ? "high"
-              : "medium",
+          reliability: "medium",
         };
 
         productionRecords.push(record);
-      } catch (error) {
-        console.warn(
-          `  Warning: Error transforming row ${index + 1}: ${error.message}`
+
+        // Anomaly Detection Logic
+        // Find previous year record for comparison
+        const prevYear = `${startYear - 1}-${endYear - 1}`.slice(2); // approximate check
+        // Better: just look for previous year string match from DB
+        // Since this is a bulk import, checking against DB might be slow if we query every time.
+        // But we fetched `previousData` above.
+
+        // Let's rely on `year` string format "2023-24" -> prev "2022-23"
+        const prevYearStr = `${startYear - 1}-${(endYear - 1).toString().slice(-2)}`;
+
+        const prevRecord = previousData.find(p =>
+          p.year === prevYearStr &&
+          p.level === level &&
+          String(p.province) === String(provinceId) &&
+          String(p.district) === String(districtId)
         );
+
+        if (prevRecord) {
+          const anomaly = checkYieldAnomaly(record, prevRecord);
+          if (anomaly) {
+            anomalies.push({
+              crop: "Rice",
+              region: row.district || row.province || "Pakistan",
+              year: row.year,
+              data: anomaly
+            });
+          }
+        }
+
+      } catch (error) {
+        console.warn(`  Warning: Error transforming row ${index + 1}: ${error.message}`);
         transformErrors++;
       }
-    });
-
-    console.log(`  Transformed ${productionRecords.length} records`);
-    if (transformErrors > 0) {
-      console.log(
-        `  ${transformErrors} rows skipped due to transformation errors`
-      );
     }
 
-    // Step 4: Clear existing rice data (optional - comment out to preserve)
     console.log("\nStep 4: Clearing existing rice data...");
-    const deleteResult = await ProductionData.deleteMany({ cropCode: "RICE" });
-    console.log(`  Deleted ${deleteResult.deletedCount} existing rice records`);
+    await ProductionData.deleteMany({ cropCode: "RICE" });
 
-    // Step 5: Bulk insert
     console.log("\nStep 5: Inserting into database...");
+    const insertResult = await ProductionData.insertMany(productionRecords, { ordered: false });
+    console.log(`  ✅ Inserted ${insertResult.length} rice production records`);
 
-    if (productionRecords.length === 0) {
-      throw new Error("No records to insert!");
-    }
-
-    console.log(
-      `  Attempting to insert ${productionRecords.length} records...`
-    );
-
-    // Debug: Show a sample record
-    console.log(
-      "  Sample record:",
-      JSON.stringify(productionRecords[0], null, 2)
-    );
-
-    let insertResult = [];
-    try {
-      insertResult = await ProductionData.insertMany(productionRecords, {
-        ordered: false,
-      });
-
-      console.log(
-        `  ✅ Inserted ${insertResult.length} rice production records`
-      );
-    } catch (error) {
-      console.error("  ❌ Insert error:", error.message);
-      if (error.writeErrors) {
-        console.error("  Write errors:", error.writeErrors.slice(0, 5));
-      }
-      if (error.insertedDocs) {
-        console.log(
-          `  Partial success: ${error.insertedDocs.length} records inserted`
-        );
-        insertResult = error.insertedDocs;
-      } else {
-        throw error;
+    // 2. Generate Alerts for Anomalies
+    if (anomalies.length > 0) {
+      console.log(`\n⚠️ Detected ${anomalies.length} production anomalies. Generating alerts...`);
+      for (const item of anomalies) {
+        await AlertService.createProductionAlert(item.crop, item.region, item.year, item.data);
       }
     }
 
-    // Step 6: Verification
-    console.log("\nStep 6: Verification...");
-    const count = await ProductionData.countDocuments({ cropCode: "RICE" });
-    console.log(`  Total rice records in database: ${count}`);
-
-    // Summary by year
-    const pipeline = [
-      { $match: { cropCode: "RICE" } },
-      {
-        $group: {
-          _id: "$year",
-          count: { $sum: 1 },
-          totalProduction: { $sum: "$production.value" },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ];
-
-    const yearSummary = await ProductionData.aggregate(pipeline);
-
-    console.log("\n📊 Records by Year:");
-    yearSummary.forEach((item) => {
-      console.log(
-        `  ${item._id}: ${item.count} records, ${(
-          item.totalProduction / 1000000
-        ).toFixed(2)}M tonnes`
-      );
-    });
-
-    console.log("\n✅ RICE IMPORT COMPLETED SUCCESSFULLY!");
+    // 3. Log Ingestion Success
+    await AlertService.logIngestionEnd(ingestionLogId, "completed", insertResult.length);
 
     return {
       imported: insertResult.length,
       errors: importer.getErrors(),
-      yearSummary,
     };
+
   } catch (error) {
     console.error(`❌ Error during rice import: ${error.message}`);
+
+    // 4. Log Ingestion Failure & Create System Alert
+    if (ingestionLogId) {
+      await AlertService.logIngestionEnd(ingestionLogId, "failed", 0, error);
+      await AlertService.createSystemAlert(
+        "Rice Data Import Failed",
+        `Automated import failed: ${error.message}`,
+        "high"
+      );
+    }
     throw error;
   }
 };
+
 export default importRice;

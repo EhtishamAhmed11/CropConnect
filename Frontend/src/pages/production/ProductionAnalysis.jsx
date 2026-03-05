@@ -27,21 +27,22 @@ const ProductionAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [trends, setTrends] = useState([]);
-  const [metadata, setMetadata] = useState({ years: [], crops: [] });
-  const [filters, setFilters] = useState({ year: "", crop: "" });
+  const [metadata, setMetadata] = useState({ years: [], crops: [], provinces: [] });
+  const [filters, setFilters] = useState({ year: "", crop: "", province: "" });
 
   useEffect(() => {
     const loadMetadata = async () => {
       try {
         const res = await productionAPI.getMetadata();
         if (res.data.success) {
-          const { years, crops } = res.data.data;
-          setMetadata({ years, crops });
+          const { years, crops, provinces } = res.data.data;
+          setMetadata({ years, crops, provinces });
 
           // Set initial filters from metadata if available
           setFilters({
             year: years[0] || "2024-25",
-            crop: crops[0] || ""
+            crop: crops[0] || "",
+            province: ""
           });
         }
       } catch (err) {
@@ -65,7 +66,15 @@ const ProductionAnalysis = () => {
 
   const fetchTrends = async (currentFilters) => {
     try {
-      const response = await productionAPI.getTrends(currentFilters);
+      // Always fetch 7 years of trend data regardless of year filter
+      // This provides better historical context for analysis
+      const trendParams = {
+        crop: currentFilters.crop,
+        province: currentFilters.province,
+        district: currentFilters.district,
+        yearsBack: 7
+      };
+      const response = await productionAPI.getTrends(trendParams);
       setTrends(response.data.data);
     } catch (error) {
       showError("Failed to fetch trends");
@@ -130,18 +139,33 @@ const ProductionAnalysis = () => {
               Production Analysis
             </h1>
           </div>
-          <div className="flex flex-wrap gap-3 bg-white p-2 rounded-2xl shadow-xl border border-slate-100 items-center">
+          <div className="flex flex-wrap gap-3 bg-white p-3 rounded-2xl shadow-xl border border-slate-100 items-center">
             <div className="relative group">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500">🌾</span>
               <select
                 name="crop"
                 value={filters.crop}
                 onChange={handleFilterChange}
-                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer w-48 transition-all hover:bg-slate-100"
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer w-40 transition-all hover:bg-slate-100"
               >
                 <option value="">Select Crop</option>
                 {metadata.crops.map(c => (
                   <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative group">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-500">🏛️</span>
+              <select
+                name="province"
+                value={filters.province}
+                onChange={handleFilterChange}
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer w-40 transition-all hover:bg-slate-100"
+              >
+                <option value="">All Provinces</option>
+                {metadata.provinces.map(p => (
+                  <option key={p} value={p}>{p === 'PB' ? 'Punjab' : p === 'SD' ? 'Sindh' : p === 'KP' ? 'KP' : p === 'BL' ? 'Balochistan' : p}</option>
                 ))}
               </select>
             </div>
@@ -152,7 +176,7 @@ const ProductionAnalysis = () => {
                 name="year"
                 value={filters.year}
                 onChange={handleFilterChange}
-                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer w-36 transition-all hover:bg-slate-100"
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer w-32 transition-all hover:bg-slate-100"
               >
                 <option value="">All Years</option>
                 {metadata.years.map(y => (

@@ -20,24 +20,20 @@ describe("GIS Controller", () => {
   let province, district, cropType;
 
   beforeEach(async () => {
-    // Create unique province & cropType codes
-    province = await Province.create({
-      ...mockProvince,
-      code: `PB_${Date.now()}`,
-      name: `Punjab ${Date.now()}`,
-      active: true,
-    });
-    cropType = await CropType.create({
-      ...mockCropType,
-      code: `WHEAT_${Date.now()}`,
-    });
+    // Use findOrCreate for province - Check both code and name
+    const existingProvince = await Province.findOne({ $or: [{ code: mockProvince.code }, { name: mockProvince.name }] });
+    province = existingProvince || (await Province.create(mockProvince));
 
-    district = await District.create({
+    // Use findOrCreate for cropType - Check both code and name to avoid unique constraint violations
+    const existingCrop = await CropType.findOne({ $or: [{ code: mockCropType.code }, { name: mockCropType.name }] });
+    cropType = existingCrop || (await CropType.create(mockCropType));
+
+    // Use findOrCreate for district
+    const existingDistrict = await District.findOne({ code: mockDistrict.code });
+    district = existingDistrict || (await District.create({
       ...mockDistrict,
-      code: `LHR_${Date.now()}`,
-      name: `Lahore ${Date.now()}`,
       province: province._id,
-    });
+    }));
   });
 
   // ------------------------- getProvinces -------------------------

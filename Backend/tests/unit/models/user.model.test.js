@@ -2,11 +2,15 @@ import User from '../../../models/user.model.js';
 import { createTestUser } from '../../helpers/testHelpers.js';
 
 describe('User Model', () => {
+  beforeAll(async () => {
+    await User.syncIndexes();
+  });
+
   describe('Schema Validation', () => {
     it('should create user with valid data', async () => {
       const userData = {
-        username: 'testuser',
-        email: 'test@example.com',
+        username: `testuser_${Date.now()}_1`,
+        email: `test_${Date.now()}@example.com`,
         password: 'hashedpassword123',
         fullName: 'Test User',
         role: 'government_policy_maker',
@@ -14,8 +18,8 @@ describe('User Model', () => {
 
       const user = await User.create(userData);
 
-      expect(user.username).toBe('testuser');
-      expect(user.email).toBe('test@example.com');
+      expect(user.username).toBe(userData.username);
+      expect(user.email).toBe(userData.email);
       expect(user.role).toBe('government_policy_maker');
       expect(user.isActive).toBe(true);
       expect(user.isVerified).toBe(false);
@@ -23,17 +27,18 @@ describe('User Model', () => {
 
     it('should reject user without required fields', async () => {
       const userData = {
-        username: 'testuser',
-        email: 'test@example.com',
+        username: `testuser_${Date.now()}_2`,
+        email: `test2_${Date.now()}@example.com`,
       };
 
       await expect(User.create(userData)).rejects.toThrow();
     });
 
     it('should reject duplicate email', async () => {
+      const email = `duplicate_${Date.now()}@example.com`;
       await User.create({
-        username: 'user1',
-        email: 'duplicate@example.com',
+        username: `user1_${Date.now()}`,
+        email: email,
         password: 'password123',
         fullName: 'User One',
         role: 'ngo_coordinator',
@@ -41,8 +46,8 @@ describe('User Model', () => {
 
       await expect(
         User.create({
-          username: 'user2',
-          email: 'duplicate@example.com',
+          username: `user2_${Date.now()}`,
+          email: email,
           password: 'password456',
           fullName: 'User Two',
           role: 'distributor',
@@ -52,7 +57,7 @@ describe('User Model', () => {
 
     it('should reject invalid email format', async () => {
       const userData = {
-        username: 'testuser',
+        username: `testuser_${Date.now()}_3`,
         email: 'invalid-email',
         password: 'password123',
         fullName: 'Test User',
@@ -64,8 +69,8 @@ describe('User Model', () => {
 
     it('should reject invalid role', async () => {
       const userData = {
-        username: 'testuser',
-        email: 'test@example.com',
+        username: `testuser_${Date.now()}_4`,
+        email: `test4_${Date.now()}@example.com`,
         password: 'password123',
         fullName: 'Test User',
         role: 'invalid_role',
@@ -76,8 +81,8 @@ describe('User Model', () => {
 
     it('should set default preferences', async () => {
       const user = await User.create({
-        username: 'testuser',
-        email: 'test@example.com',
+        username: `testuser_${Date.now()}_5`,
+        email: `test5_${Date.now()}@example.com`,
         password: 'password123',
         fullName: 'Test User',
         role: 'government_policy_maker',
@@ -90,8 +95,8 @@ describe('User Model', () => {
 
     it('should validate phone number format', async () => {
       const userData = {
-        username: 'testuser',
-        email: 'test@example.com',
+        username: `testuser_${Date.now()}_6`,
+        email: `test6_${Date.now()}@example.com`,
         password: 'password123',
         fullName: 'Test User',
         role: 'distributor',
@@ -105,7 +110,7 @@ describe('User Model', () => {
   describe('User Methods', () => {
     it('should increment login attempts', async () => {
       const user = await createTestUser();
-      
+
       user.loginAttempts += 1;
       await user.save();
 
@@ -114,7 +119,7 @@ describe('User Model', () => {
 
     it('should lock account after multiple failed attempts', async () => {
       const user = await createTestUser();
-      
+
       user.loginAttempts = 5;
       user.lockUntil = new Date(Date.now() + 30 * 60 * 1000);
       await user.save();

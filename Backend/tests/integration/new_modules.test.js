@@ -12,30 +12,44 @@ describe("New Modules Integration Tests", () => {
 
     beforeAll(async () => {
         // Setup initial data needed for tests
-        mockProvince = await Province.create({
-            code: "P-TEST",
-            name: "Test Province",
-            population: 1000000,
-            area: 5000,
-            coordinates: { latitude: 30, longitude: 70 }
-        });
+        mockProvince = await Province.findOneAndUpdate(
+            { code: "P-TEST" },
+            {
+                code: "P-TEST",
+                name: "Test Province",
+                population: 1000000,
+                area: 5000,
+                coordinates: { latitude: 30, longitude: 70 }
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
 
-        mockDistrict = await District.create({
-            code: "D-TEST",
-            name: "Test District",
-            province: mockProvince._id,
-            provinceCode: "P-TEST",
-            population: 200000,
-            area: 1000,
-            coordinates: { latitude: 31.5, longitude: 74.3 }, // Lahore roughly
-            geometry: { type: "Polygon", coordinates: [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]] }
-        });
+        mockDistrict = await District.findOneAndUpdate(
+            { code: "D-TEST" },
+            {
+                code: "D-TEST",
+                name: "Test District",
+                province: mockProvince._id,
+                provinceCode: "P-TEST",
+                population: 200000,
+                area: 1000,
+                coordinates: { latitude: 31.5, longitude: 74.3 }, // Lahore roughly
+                geometry: { type: "Polygon", coordinates: [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]] }
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
 
-        mockCrop = await CropType.create({
-            name: "Test Wheat",
-            variety: "Integration Variety",
-            category: "Cereal"
-        });
+        mockCrop = await CropType.findOneAndUpdate(
+            { code: "WHEAT-TEST" },
+            {
+                code: "WHEAT-TEST",
+                name: "Test Wheat",
+                category: "grain",
+                season: "rabi",
+                avgConsumptionPerCapita: 120
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
     });
 
     describe("Module 1: Weather Integration", () => {
@@ -91,13 +105,17 @@ describe("New Modules Integration Tests", () => {
         let secondDistrict;
 
         beforeAll(async () => {
-            secondDistrict = await District.create({
-                code: "D-TEST-2",
-                name: "Test District 2",
-                province: mockProvince._id,
-                provinceCode: "P-TEST",
-                coordinates: { latitude: 33.6, longitude: 73.0 } // Islamabad
-            });
+            secondDistrict = await District.findOneAndUpdate(
+                { code: "D-TEST-2" },
+                {
+                    code: "D-TEST-2",
+                    name: "Test District 2",
+                    province: mockProvince._id,
+                    provinceCode: "P-TEST",
+                    coordinates: { latitude: 33.6, longitude: 73.0 } // Islamabad
+                },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
         });
 
         it("GET /api/gis/routes - should calculate route", async () => {

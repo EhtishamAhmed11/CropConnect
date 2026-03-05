@@ -25,9 +25,11 @@ const ProductionTrends = () => {
   const { showError } = useAlert();
   const [loading, setLoading] = useState(false);
   const [trends, setTrends] = useState([]);
-  const [metadata, setMetadata] = useState({ crops: [] });
+  const [metadata, setMetadata] = useState({ crops: [], provinces: [] });
   const [filters, setFilters] = useState({
     crop: "",
+    province: "",
+    district: "",
     level: "national",
   });
 
@@ -35,9 +37,10 @@ const ProductionTrends = () => {
     const loadMetadata = async () => {
       try {
         const res = await productionAPI.getMetadata();
+        console.log(res.data);
         if (res.data.success) {
-          const { crops } = res.data.data;
-          setMetadata({ crops });
+          const { crops, provinces } = res.data.data;
+          setMetadata({ crops, provinces });
           if (crops.length > 0) {
             setFilters(prev => ({ ...prev, crop: crops[0] }));
           }
@@ -58,7 +61,9 @@ const ProductionTrends = () => {
   const fetchTrends = async () => {
     setLoading(true);
     try {
-      const response = await productionAPI.getTrends(filters);
+      // Add yearsBack parameter to fetch 7 years of historical data
+      const params = { ...filters, yearsBack: 7 };
+      const response = await productionAPI.getTrends(params);
       setTrends(response.data.data);
     } catch (error) {
       showError("Failed to fetch trends");
@@ -104,18 +109,33 @@ const ProductionTrends = () => {
             </h1>
           </div>
           {/* Filter Bar */}
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-2 flex gap-3 items-center">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-3 flex flex-wrap gap-3 items-center">
             <div className="relative group">
               <span className="absolute left-3 top-1/2 -translate-y-1/2">🌱</span>
               <select
                 name="crop"
                 value={filters.crop}
                 onChange={handleFilterChange}
-                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer w-48 transition-all hover:bg-slate-100"
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer w-44 transition-all hover:bg-slate-100"
               >
                 <option value="">Select Crop</option>
                 {metadata.crops.map(c => (
                   <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative group">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2">🏛️</span>
+              <select
+                name="province"
+                value={filters.province}
+                onChange={handleFilterChange}
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer w-44 transition-all hover:bg-slate-100"
+              >
+                <option value="">All Provinces</option>
+                {metadata.provinces.map(p => (
+                  <option key={p} value={p}>{p === 'PB' ? 'Punjab' : p === 'SD' ? 'Sindh' : p === 'KP' ? 'KP' : p === 'BL' ? 'Balochistan' : p}</option>
                 ))}
               </select>
             </div>
@@ -126,11 +146,11 @@ const ProductionTrends = () => {
                 name="level"
                 value={filters.level}
                 onChange={handleFilterChange}
-                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer w-48 transition-all hover:bg-slate-100"
+                className="pl-9 pr-10 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer w-44 transition-all hover:bg-slate-100"
               >
-                <option value="national">National Level</option>
-                <option value="provincial">Provincial Level</option>
-                <option value="district">District Level</option>
+                <option value="national">National</option>
+                <option value="provincial">Provincial</option>
+                <option value="district">District</option>
               </select>
             </div>
           </div>

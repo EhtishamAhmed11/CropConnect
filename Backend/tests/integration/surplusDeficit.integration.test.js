@@ -1,29 +1,66 @@
-import CropType from "../../models/cropType.model";
-import ProductionData from "../../models/productionData.model";
-import Province from "../../models/province.model";
-import SurplusDeficit from "../../models/surplusDeficit.model";
-import { mockCropType, mockProductionData, mockProvince } from "../helpers/mockData";
-import { createTestUser, generateToken } from "../helpers/testHelpers";
+import request from "supertest";
+import app from "../../index.js";
+import CropType from "../../models/cropType.model.js";
+import ProductionData from "../../models/productionData.model.js";
+import Province from "../../models/province.model.js";
+import SurplusDeficit from "../../models/surplusDeficit.model.js";
+import { mockCropType, mockProductionData, mockProvince } from "../helpers/mockData.js";
+import { createTestUser, generateToken } from "../helpers/testHelpers.js";
 
 describe("Surplus/Deficit Integration Tests", () => {
   let policyMakerToken, province, cropType;
 
   beforeAll(async () => {
-    const policyMaker = await createTestUser({
-      role: "government_policy_maker",
-      email: "policy@test.com",
-    });
+    // Ensure user exists
+    let policyMaker;
+    try {
+      policyMaker = await createTestUser({
+        role: "government_policy_maker",
+        email: "policy@test.com",
+      });
+    } catch (e) {
+      if (e.code === 11000) {
+        policyMaker = await import("../../models/user.model").then(m => m.default.findOne({ email: "policy@test.com" }));
+      } else {
+        throw e;
+      }
+    }
     policyMakerToken = generateToken(policyMaker._id);
 
-    province = await Province.create({
-      ...mockProvince,
-      population: 110000000,
-    });
-    cropType = await CropType.create(mockCropType);
+    // Create or get Province
+    const existingProvince = await Province.findOne({ code: mockProvince.code });
+    if (existingProvince) {
+      province = existingProvince;
+    } else {
+      province = await Province.create({
+        ...mockProvince,
+        population: 110000000,
+      });
+    }
+
+    // Create or get CropType
+    const existingCrop = await CropType.findOne({ code: mockCropType.code });
+    if (existingCrop) {
+      cropType = existingCrop;
+    } else {
+      cropType = await CropType.create(mockCropType);
+    }
   });
 
   describe("Calculate Surplus/Deficit and Alert Creation", () => {
     it("should calculate deficit and automatically create alert", async () => {
+      // Step 0: Cleanup existing data for this test case
+      await ProductionData.deleteMany({
+        year: "2024-25",
+        province: province._id,
+        cropType: cropType._id
+      });
+      await SurplusDeficit.deleteMany({
+        year: "2024-25",
+        provinceCode: mockProvince.code,
+        cropCode: "WHEAT"
+      });
+
       // Step 1: Create production data with deficit scenario
       await ProductionData.create({
         ...mockProductionData,
@@ -87,12 +124,20 @@ describe("Surplus/Deficit Integration Tests", () => {
       });
 
       // Create surplus region
-      const province2 = await Province.create({
-        ...mockProvince,
-        code: "SD",
-        name: "Sindh",
-        population: 47000000,
-      });
+      // Create or get surplus region (Sindh)
+      let province2 = await Province.findOne({ code: "SD" });
+      if (!province2) {
+        try {
+          province2 = await Province.create({
+            ...mockProvince,
+            code: "SD",
+            name: "Sindh",
+            population: 47000000,
+          });
+        } catch (e) {
+          province2 = await Province.findOne({ code: "SD" });
+        }
+      }
 
       await SurplusDeficit.create({
         year: "2024-25",

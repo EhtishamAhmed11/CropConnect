@@ -1,3 +1,37 @@
 .qodo
 node_modules
 .env
+# Dependencies
+node_modules/
+Frontend/node_modules/
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Build output
+Frontend/dist/
+Frontend/dist-ssr/
+
+# Generated/temp files
+Backend/public/reports/
+Backend/test_output.txt
+prediction_fail.txt
+server_output.txt
+SRS_TEMP/
+
+# IDE / OS
+.qodo/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Lock files (optional — keep package-lock if you want reproducible installs)
+# package-lock.json

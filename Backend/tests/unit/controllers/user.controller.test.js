@@ -9,7 +9,7 @@ describe("User Controller", () => {
 
   beforeEach(async () => {
     user = await createTestUser({
-      email: "user@example.com",
+      email: `user_${Date.now()}@test.com`,
       fullName: "Test User",
     });
   });
@@ -27,7 +27,7 @@ describe("User Controller", () => {
         expect.objectContaining({
           success: true,
           data: expect.objectContaining({
-            email: "user@example.com",
+            email: user.email,
             fullName: "Test User",
           }),
         })
