@@ -1481,3 +1481,7 @@
 {"level":"info","message":"Cache hit for key: timeline:{\"crop\":\"Wheat\",\"region\":\"Pakistan\"}","service":"crop-connect-backend","timestamp":"2026-02-22 13:32:23"}
 {"level":"info","message":"Cache set for key: timeline:{\"crop\":\"Rice\",\"region\":\"Pakistan\"}, expires in 300s","service":"crop-connect-backend","timestamp":"2026-02-22 13:32:57"}
 {"level":"info","message":"Server started on port 3000","service":"crop-connect-backend","timestamp":"2026-02-22 14:20:40"}
+{"level":"info","message":"Server started on port 3000","service":"crop-connect-backend","timestamp":"2026-03-06 06:12:28"}
+{"level":"warn","message":"Request failed: {\"timestamp\":\"2026-03-06T01:21:52.542Z\",\"userId\":\"anonymous\",\"username\":\"anonymous\",\"method\":\"GET\",\"path\":\"/me\",\"statusCode\":401,\"duration\":\"14ms\",\"ip\":\"::1\"}","service":"crop-connect-backend","timestamp":"2026-03-06 06:21:52"}
+{"level":"warn","message":"Request failed: {\"timestamp\":\"2026-03-06T01:21:52.548Z\",\"userId\":\"anonymous\",\"username\":\"anonymous\",\"method\":\"GET\",\"path\":\"/me\",\"statusCode\":401,\"duration\":\"3ms\",\"ip\":\"::1\"}","service":"crop-connect-backend","timestamp":"2026-03-06 06:21:52"}
+{"level":"info","message":"Key action performed: {\"timestamp\":\"2026-03-06T01:22:14.948Z\",\"userId\":\"anonymous\",\"username\":\"anonymous\",\"method\":\"POST\",\"path\":\"/login\",\"statusCode\":200,\"duration\":\"669ms\",\"ip\":\"::1\"}","service":"crop-connect-backend","timestamp":"2026-03-06 06:22:14"}
