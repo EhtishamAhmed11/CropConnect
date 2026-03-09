@@ -4,6 +4,7 @@ import ApiResponse from "../utils/apiResponse.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../services/email.service.js";
 
 /**
  * @desc    Register new user
@@ -81,8 +82,10 @@ export const register = async (req, res, next) => {
       isVerified: false,
     });
 
-    // TODO: Send verification email
-    // await sendVerificationEmail(user.email, verificationToken);
+    // Send verification email (non-blocking — don't fail registration if email fails)
+    sendVerificationEmail(user.email, verificationToken).catch(err =>
+      console.error("Verification email failed:", err.message)
+    );
 
     // Generate JWT tokens
     const { accessToken, refreshToken } = generateTokens(user._id);
@@ -315,8 +318,8 @@ export const resendVerification = async (req, res, next) => {
     user.verificationTokenExpiry = verificationTokenExpiry;
     await user.save();
 
-    // TODO: Send verification email
-    // await sendVerificationEmail(user.email, verificationToken);
+    // Send verification email
+    await sendVerificationEmail(user.email, verificationToken);
 
     return ApiResponse.success(
       res,
@@ -365,13 +368,13 @@ export const forgotPassword = async (req, res, next) => {
     user.resetPasswordExpiry = resetPasswordExpiry;
     await user.save();
 
-    // TODO: Send password reset email
-    // const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-    // await sendPasswordResetEmail(user.email, resetUrl);
+    // Send password reset email
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+    await sendPasswordResetEmail(user.email, resetUrl);
 
     return ApiResponse.success(
       res,
-      { resetToken }, // Remove this in production, only for testing
+      null,
       "If an account with that email exists, a password reset link has been sent."
     );
   } catch (error) {

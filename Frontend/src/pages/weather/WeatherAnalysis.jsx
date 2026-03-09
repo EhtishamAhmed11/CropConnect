@@ -6,14 +6,15 @@ import Loading from "../../components/common/Loading";
 import WeatherWidget from "../../components/weather/WeatherWidget";
 import {
     Cloud, Sun, Droplets, Wind, CloudRain, CloudSnow, CloudLightning,
-    Thermometer, TrendingUp, TrendingDown, AlertTriangle, Calendar
+    Thermometer, TrendingUp, TrendingDown, AlertTriangle, Calendar,
+    CheckCircle2, AlertCircle, Leaf, Info
 } from "lucide-react";
 import {
     LineChart, Line, BarChart, Bar, XAxis, YAxis,
     CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart
 } from "recharts";
 
-// Map OWM condition to icon
+// ── Weather icon helper ───────────────────────────────────────────────────────
 const getWeatherIcon = (condition, size = 24) => {
     const c = (condition || '').toLowerCase();
     if (c.includes('rain') || c.includes('drizzle')) return <CloudRain size={size} />;
@@ -23,15 +24,185 @@ const getWeatherIcon = (condition, size = 24) => {
     return <Sun size={size} />;
 };
 
+// ── Risk styles ───────────────────────────────────────────────────────────────
+const RISK_CONFIG = {
+    good: { label: "Favorable", bg: "bg-emerald-50", border: "border-emerald-200", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500", icon: CheckCircle2, iconColor: "text-emerald-500" },
+    caution: { label: "Caution", bg: "bg-amber-50", border: "border-amber-200", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-400", icon: AlertTriangle, iconColor: "text-amber-500" },
+    high: { label: "High Risk", bg: "bg-red-50", border: "border-red-200", badge: "bg-red-100 text-red-700", dot: "bg-red-500", icon: AlertCircle, iconColor: "text-red-500" },
+};
+
+const RiskBadge = ({ level, small = false }) => {
+    const cfg = RISK_CONFIG[level] || RISK_CONFIG.good;
+    return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold ${small ? "text-xs" : "text-xs"} ${cfg.badge}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {cfg.label}
+        </span>
+    );
+};
+
+// ── Crop Impact Card ──────────────────────────────────────────────────────────
+const CropImpactCard = ({ crop }) => {
+    const [expanded, setExpanded] = useState(false);
+    const cfg = RISK_CONFIG[crop.overallRisk] || RISK_CONFIG.good;
+    const Icon = cfg.icon;
+
+    return (
+        <div className={`rounded-2xl border-2 ${cfg.border} overflow-hidden transition-all duration-300`}>
+            {/* Card Header */}
+            <div className={`${cfg.bg} p-5`}>
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="text-3xl">{crop.emoji}</div>
+                        <div>
+                            <h3 className="font-extrabold text-slate-800 text-lg leading-tight">{crop.name}</h3>
+                            <p className="text-xs text-slate-500 mt-0.5">{crop.season}</p>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                        <RiskBadge level={crop.overallRisk} />
+                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                            <Icon size={13} className={cfg.iconColor} />
+                            <span>{cfg.label} conditions</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Current Conditions Row */}
+                {crop.current?.temperature != null && (
+                    <div className="mt-4 flex items-center gap-4 text-sm flex-wrap">
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                            <Thermometer size={14} className="text-orange-400" />
+                            <span className="font-semibold">{Math.round(crop.current.temperature)}°C</span>
+                            <span className="text-slate-400">now</span>
+                        </div>
+                        {crop.current.humidity != null && (
+                            <div className="flex items-center gap-1.5 text-slate-600">
+                                <Droplets size={14} className="text-blue-400" />
+                                <span className="font-semibold">{crop.current.humidity}%</span>
+                                <span className="text-slate-400">humidity</span>
+                            </div>
+                        )}
+                        {crop.current.condition && (
+                            <div className="flex items-center gap-1.5 text-slate-600">
+                                {getWeatherIcon(crop.current.condition, 14)}
+                                <span className="capitalize">{crop.current.condition}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Active Risks */}
+                {crop.current.risks?.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {crop.current.risks.map((r, i) => (
+                            <span key={i} className="text-xs bg-white/60 border border-slate-200 text-slate-600 rounded-lg px-2.5 py-1 font-medium">
+                                ⚠ {r.label}
+                            </span>
+                        ))}
+                    </div>
+                )}
+                {crop.current.risks?.length === 0 && (
+                    <div className="mt-3">
+                        <span className="text-xs bg-white/60 border border-emerald-200 text-emerald-700 rounded-lg px-2.5 py-1 font-medium">
+                            ✓ No active stressors
+                        </span>
+                    </div>
+                )}
+            </div>
+
+            {/* Recommendations */}
+            {crop.recommendations?.length > 0 && (
+                <div className="bg-white px-5 py-4 border-t border-slate-100">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Recommendations</p>
+                    <ul className="space-y-1.5">
+                        {crop.recommendations.map((rec, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                                <span className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                                {rec}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {crop.recommendations?.length === 0 && (
+                <div className="bg-white px-5 py-4 border-t border-slate-100">
+                    <p className="text-sm text-emerald-600 font-medium">✓ No specific action required — conditions are favorable.</p>
+                </div>
+            )}
+
+            {/* 10-Day Forecast Toggle */}
+            {crop.forecastImpact?.length > 0 && (
+                <>
+                    <button
+                        onClick={() => setExpanded(!expanded)}
+                        className="w-full flex items-center justify-between px-5 py-3 bg-slate-50 hover:bg-slate-100 transition-colors border-t border-slate-100 text-sm font-bold text-slate-600"
+                    >
+                        <span>{expanded ? "Hide" : "Show"} 10-Day Forecast Impact</span>
+                        <Calendar size={15} />
+                    </button>
+
+                    {expanded && (
+                        <div className="bg-white border-t border-slate-100 overflow-x-auto">
+                            <table className="w-full text-xs min-w-[560px]">
+                                <thead>
+                                    <tr className="border-b border-slate-100 text-left">
+                                        <th className="px-4 py-2.5 font-bold text-slate-400 uppercase tracking-wider">Date</th>
+                                        <th className="px-3 py-2.5 font-bold text-slate-400 uppercase tracking-wider">Condition</th>
+                                        <th className="px-3 py-2.5 font-bold text-slate-400 uppercase tracking-wider text-right">Max/Min °C</th>
+                                        <th className="px-3 py-2.5 font-bold text-slate-400 uppercase tracking-wider text-right">Rain %</th>
+                                        <th className="px-3 py-2.5 font-bold text-slate-400 uppercase tracking-wider">Impact</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {crop.forecastImpact.map((day, i) => {
+                                        const d = new Date(day.date);
+                                        const label = i === 0 ? "Today" : d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                                        return (
+                                            <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-4 py-2.5 font-semibold text-slate-700">{label}</td>
+                                                <td className="px-3 py-2.5 text-slate-500 capitalize flex items-center gap-1.5">
+                                                    <span className="text-blue-400">{getWeatherIcon(day.condition, 13)}</span>
+                                                    {day.condition}
+                                                </td>
+                                                <td className="px-3 py-2.5 text-right font-semibold text-slate-700">
+                                                    {day.temperatureMax != null ? `${Math.round(day.temperatureMax)}° / ${Math.round(day.temperatureMin)}°` : "—"}
+                                                </td>
+                                                <td className="px-3 py-2.5 text-right">
+                                                    {day.rainfallProb != null ? (
+                                                        <span className={`font-bold ${day.rainfallProb > 60 ? "text-blue-600" : day.rainfallProb > 30 ? "text-blue-400" : "text-slate-400"}`}>
+                                                            {day.rainfallProb}%
+                                                        </span>
+                                                    ) : "—"}
+                                                </td>
+                                                <td className="px-3 py-2.5">
+                                                    <RiskBadge level={day.riskLevel} small />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const WeatherAnalysis = () => {
     const [districts, setDistricts] = useState([]);
     const [selectedDistrict, setSelectedDistrict] = useState(null);
     const [weatherHistory, setWeatherHistory] = useState([]);
     const [forecast, setForecast] = useState([]);
+    const [cropImpact, setCropImpact] = useState(null);
     const [loading, setLoading] = useState(true);
     const [forecastLoading, setForecastLoading] = useState(false);
+    const [cropLoading, setCropLoading] = useState(false);
 
-    // Fetch district list
+    // Load districts
     useEffect(() => {
         (async () => {
             try {
@@ -39,9 +210,7 @@ const WeatherAnalysis = () => {
                 if (res.data?.data) {
                     const items = res.data.data;
                     setDistricts(items);
-                    if (items.length > 0) {
-                        setSelectedDistrict(items[0]);
-                    }
+                    if (items.length > 0) setSelectedDistrict(items[0]);
                 }
             } catch (err) {
                 console.error("Failed to load districts:", err);
@@ -51,40 +220,39 @@ const WeatherAnalysis = () => {
         })();
     }, []);
 
-    // Fetch weather when district changes
+    // Fetch weather + crop impact when district changes
     useEffect(() => {
         if (!selectedDistrict) return;
-        const districtId = selectedDistrict._id || selectedDistrict.code;
+        const id = selectedDistrict._id || selectedDistrict.code;
 
-        const fetchWeather = async () => {
+        const fetchAll = async () => {
             setLoading(true);
             setForecastLoading(true);
-            try {
-                // Fetch history
-                const histRes = await weatherAPI.getWeatherHistory(districtId);
-                if (histRes.data?.success) {
-                    setWeatherHistory(histRes.data.data || []);
-                }
-            } catch (error) {
-                console.error("Error fetching history:", error);
-            } finally {
-                setLoading(false);
-            }
+            setCropLoading(true);
+            setCropImpact(null);
 
+            // History
             try {
-                // Fetch forecast
-                const forecastRes = await weatherAPI.getForecast(districtId);
-                if (forecastRes.data?.success && forecastRes.data?.data?.forecast) {
-                    setForecast(forecastRes.data.data.forecast);
-                }
+                const h = await weatherAPI.getWeatherHistory(id);
+                if (h.data?.success) setWeatherHistory(h.data.data || []);
+            } catch { /* silent */ } finally { setLoading(false); }
+
+            // Forecast
+            try {
+                const f = await weatherAPI.getForecast(id);
+                if (f.data?.success && f.data?.data?.forecast) setForecast(f.data.data.forecast);
+            } catch { /* silent */ } finally { setForecastLoading(false); }
+
+            // Crop Impact
+            try {
+                const c = await weatherAPI.getCropImpact(id);
+                if (c.data?.success) setCropImpact(c.data.data);
             } catch (e) {
-                console.warn("Forecast not available");
-            } finally {
-                setForecastLoading(false);
-            }
+                console.warn("Crop impact not available:", e.message);
+            } finally { setCropLoading(false); }
         };
 
-        fetchWeather();
+        fetchAll();
     }, [selectedDistrict]);
 
     // Chart data
@@ -101,10 +269,8 @@ const WeatherAnalysis = () => {
             rainfall: w.rainfall
         })), [weatherHistory]);
 
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const dayNamesShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    // Climate insights from history
     const insights = useMemo(() => {
         if (weatherHistory.length < 2) return null;
         const temps = weatherHistory.map(w => w.temperature);
@@ -113,7 +279,6 @@ const WeatherAnalysis = () => {
         const minTemp = Math.min(...temps);
         const totalRain = weatherHistory.reduce((a, w) => a + (w.rainfall || 0), 0).toFixed(1);
         const avgHumidity = (weatherHistory.reduce((a, w) => a + w.humidity, 0) / weatherHistory.length).toFixed(0);
-
         return { avgTemp, maxTemp, minTemp, totalRain, avgHumidity };
     }, [weatherHistory]);
 
@@ -125,9 +290,8 @@ const WeatherAnalysis = () => {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-800">Weather Analysis</h1>
-                        <p className="text-slate-500 mt-1">Real-time weather, forecasts, and climate trends for agricultural planning.</p>
+                        <p className="text-slate-500 mt-1">Real-time weather, forecasts, and crop impact for agricultural planning.</p>
                     </div>
-
                     <select
                         value={selectedDistrict?._id || ""}
                         onChange={(e) => {
@@ -145,29 +309,20 @@ const WeatherAnalysis = () => {
                 {loading && !selectedDistrict ? (
                     <div className="flex items-center justify-center py-20"><Loading /></div>
                 ) : (
-                    <div className="space-y-8">
+                    <div className="space-y-10">
 
-                        {/* Row 1: Current Weather Widget + 7-Day Forecast */}
+                        {/* Row 1: Current Widget + 7-Day Forecast */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Current Weather Widget */}
                             <div className="lg:col-span-1">
-                                <WeatherWidget
-                                    districtId={selectedDistrict?._id}
-                                    districtName={selectedDistrict?.name}
-                                />
+                                <WeatherWidget districtId={selectedDistrict?._id} districtName={selectedDistrict?.name} />
                             </div>
-
-                            {/* 7-Day Forecast */}
                             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                                 <div className="flex items-center gap-2 mb-4">
                                     <Calendar className="text-blue-600" size={20} />
                                     <h2 className="text-lg font-bold text-slate-800">Extended Forecast</h2>
                                 </div>
-
                                 {forecastLoading ? (
-                                    <div className="flex items-center justify-center py-12">
-                                        <Loading />
-                                    </div>
+                                    <div className="flex items-center justify-center py-12"><Loading /></div>
                                 ) : forecast.length > 0 ? (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                                         {forecast.map((day, i) => {
@@ -175,14 +330,11 @@ const WeatherAnalysis = () => {
                                             const dayName = i === 0 ? 'Today' : dayNamesShort[d.getDay()];
                                             const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                                             const rainColor = day.rainfallProb > 60 ? 'text-blue-600' : day.rainfallProb > 30 ? 'text-blue-400' : 'text-slate-400';
-
                                             return (
                                                 <div key={i} className="bg-slate-50 rounded-xl p-4 text-center hover:bg-blue-50 transition-colors border border-slate-100">
                                                     <p className="text-xs font-bold text-slate-500 uppercase mb-1">{dayName}</p>
                                                     <p className="text-[10px] text-slate-400 mb-3">{dateStr}</p>
-                                                    <div className="flex justify-center mb-3 text-blue-500">
-                                                        {getWeatherIcon(day.condition, 28)}
-                                                    </div>
+                                                    <div className="flex justify-center mb-3 text-blue-500">{getWeatherIcon(day.condition, 28)}</div>
                                                     <p className="text-sm font-bold text-slate-800 capitalize mb-2">{day.condition}</p>
                                                     <div className="flex justify-center gap-2 text-sm">
                                                         <span className="font-bold text-slate-900">{Math.round(day.temperatureMax)}°</span>
@@ -211,47 +363,72 @@ const WeatherAnalysis = () => {
                         {/* Climate Summary Tiles */}
                         {insights && (
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Thermometer size={16} className="text-orange-500" />
-                                        <p className="text-xs font-bold text-slate-500 uppercase">Avg Temp</p>
+                                {[
+                                    { icon: <Thermometer size={16} className="text-orange-500" />, label: "Avg Temp", value: `${insights.avgTemp}°C`, color: "text-slate-800" },
+                                    { icon: <TrendingUp size={16} className="text-red-500" />, label: "Max Temp", value: `${insights.maxTemp}°C`, color: "text-red-600" },
+                                    { icon: <TrendingDown size={16} className="text-blue-500" />, label: "Min Temp", value: `${insights.minTemp}°C`, color: "text-blue-600" },
+                                    { icon: <CloudRain size={16} className="text-cyan-500" />, label: "Total Rain", value: `${insights.totalRain} mm`, color: "text-cyan-700" },
+                                    { icon: <Droplets size={16} className="text-teal-500" />, label: "Avg Humidity", value: `${insights.avgHumidity}%`, color: "text-teal-700" },
+                                ].map(({ icon, label, value, color }) => (
+                                    <div key={label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                                        <div className="flex items-center gap-2 mb-2">{icon}<p className="text-xs font-bold text-slate-500 uppercase">{label}</p></div>
+                                        <p className={`text-2xl font-bold ${color}`}>{value}</p>
                                     </div>
-                                    <p className="text-2xl font-bold text-slate-800">{insights.avgTemp}°C</p>
-                                </div>
-                                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <TrendingUp size={16} className="text-red-500" />
-                                        <p className="text-xs font-bold text-slate-500 uppercase">Max Temp</p>
-                                    </div>
-                                    <p className="text-2xl font-bold text-red-600">{insights.maxTemp}°C</p>
-                                </div>
-                                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <TrendingDown size={16} className="text-blue-500" />
-                                        <p className="text-xs font-bold text-slate-500 uppercase">Min Temp</p>
-                                    </div>
-                                    <p className="text-2xl font-bold text-blue-600">{insights.minTemp}°C</p>
-                                </div>
-                                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <CloudRain size={16} className="text-cyan-500" />
-                                        <p className="text-xs font-bold text-slate-500 uppercase">Total Rain</p>
-                                    </div>
-                                    <p className="text-2xl font-bold text-cyan-700">{insights.totalRain} mm</p>
-                                </div>
-                                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Droplets size={16} className="text-teal-500" />
-                                        <p className="text-xs font-bold text-slate-500 uppercase">Avg Humidity</p>
-                                    </div>
-                                    <p className="text-2xl font-bold text-teal-700">{insights.avgHumidity}%</p>
-                                </div>
+                                ))}
                             </div>
                         )}
 
+                        {/* ── CROP IMPACT ANALYSIS ────────────────────────────── */}
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-2 bg-green-100 rounded-xl">
+                                        <Leaf size={20} className="text-green-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-800">Crop Impact Analysis</h2>
+                                        <p className="text-sm text-slate-500">
+                                            {selectedDistrict?.name} — How current & next 10 days weather affects major crops
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Legend */}
+                            <div className="flex items-center gap-4 mb-5 mt-3 pl-1">
+                                {Object.entries(RISK_CONFIG).map(([key, cfg]) => (
+                                    <div key={key} className="flex items-center gap-1.5">
+                                        <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
+                                        <span className="text-xs text-slate-500 font-medium">{cfg.label}</span>
+                                    </div>
+                                ))}
+                                <div className="flex items-center gap-1 text-xs text-slate-400 ml-2">
+                                    <Info size={12} />
+                                    Based on Pakistan agronomic thresholds
+                                </div>
+                            </div>
+
+                            {cropLoading ? (
+                                <div className="flex items-center justify-center py-16">
+                                    <Loading />
+                                </div>
+                            ) : cropImpact?.crops?.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                    {cropImpact.crops.map((crop) => (
+                                        <CropImpactCard key={crop.crop} crop={crop} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-16 text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <Leaf size={40} className="mx-auto mb-2 opacity-30" />
+                                    <p className="font-medium">No crop impact data available.</p>
+                                    <p className="text-sm mt-1">Weather data may not be available for this district yet.</p>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Historical Charts */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Temperature & Humidity Chart */}
                             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                                 <h2 className="text-lg font-bold text-slate-800 mb-4">Temperature & Humidity (30 Days)</h2>
                                 {tempData.length > 0 ? (
@@ -271,9 +448,7 @@ const WeatherAnalysis = () => {
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                                 <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                                                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                                                <Tooltip
-                                                    contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-                                                />
+                                                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
                                                 <Area type="monotone" dataKey="temp" stroke="#f97316" fill="url(#tempGrad)" strokeWidth={2} name="Temperature (°C)" />
                                                 <Area type="monotone" dataKey="humidity" stroke="#3b82f6" fill="url(#humGrad)" strokeWidth={2} name="Humidity (%)" />
                                             </AreaChart>
@@ -283,8 +458,6 @@ const WeatherAnalysis = () => {
                                     <p className="text-slate-400 text-center py-12">No historical data</p>
                                 )}
                             </div>
-
-                            {/* Rainfall Chart */}
                             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                                 <h2 className="text-lg font-bold text-slate-800 mb-4">Rainfall (30 Days)</h2>
                                 {rainData.length > 0 ? (
@@ -294,9 +467,7 @@ const WeatherAnalysis = () => {
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                                 <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                                                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                                                <Tooltip
-                                                    contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-                                                />
+                                                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
                                                 <Bar dataKey="rainfall" fill="#06b6d4" radius={[4, 4, 0, 0]} name="Rainfall (mm)" />
                                             </BarChart>
                                         </ResponsiveContainer>

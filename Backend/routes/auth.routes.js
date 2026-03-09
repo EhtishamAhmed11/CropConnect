@@ -6,8 +6,8 @@ import {
   login,
   getMe,
   logout,
-//   verifyEmail,
-//   resendVerification,
+  verifyEmail,
+  resendVerification,
   forgotPassword,
   resetPassword,
   refreshToken,
@@ -23,8 +23,8 @@ import {
 // Public routes
 router.post("/register", validateRegister, register);
 router.post("/login", validateLogin, login);
-// router.get("/verify-email/:token", verifyEmail);
-// router.post("/resend-verification", resendVerification);
+router.get("/verify-email/:token", verifyEmail);
+router.post("/resend-verification", resendVerification);
 router.post("/forgot-password", validateForgotPassword, forgotPassword);
 router.put("/reset-password/:token", validateResetPassword, resetPassword);
 

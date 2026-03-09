@@ -4,5 +4,7 @@ export const weatherAPI = {
     getDistrictWeather: (districtId) => api.get(`/weather/district/${districtId}`),
     getWeatherHistory: (districtId) => api.get(`/weather/history/${districtId}`),
     getForecast: (districtId) => api.get(`/weather/forecast/${districtId}`),
+    getCropImpact: (districtId) => api.get(`/weather/crop-impact/${districtId}`),
     triggerUpdate: (districtId) => api.post(`/weather/update/${districtId}`),
 };
+
