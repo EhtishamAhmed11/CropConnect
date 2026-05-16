@@ -92,12 +92,22 @@ export const getTimelineData = async (req, res, next) => {
 
         // Format response
         const timeline = {
-            historical: (historicalData || []).map((d) => ({
-                year: d.year,
-                production: d.production?.value || 0,
-                unit: d.production?.unit || "tonnes",
-                type: "actual",
-            })),
+            historical: (historicalData || []).map((d) => {
+                // Handle "2023-24" string format by extracting the start year
+                let yearVal = d.year;
+                if (typeof yearVal === "string" && yearVal.includes("-")) {
+                    yearVal = parseInt(yearVal.split("-")[0]);
+                } else if (typeof yearVal === "string") {
+                    yearVal = parseInt(yearVal);
+                }
+                
+                return {
+                    year: yearVal,
+                    production: d.production?.value || 0,
+                    unit: d.production?.unit || "tonnes",
+                    type: "actual",
+                };
+            }),
             forecast: (forecastData || []).map((d) => ({
                 year: d.year,
                 production: d.predictedProduction?.value || 0,

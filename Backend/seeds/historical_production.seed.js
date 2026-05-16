@@ -5,7 +5,8 @@ import CropType from "../models/cropType.model.js";
 import ProductionData from "../models/productionData.model.js";
 import dotenv from "dotenv";
 
-dotenv.config();
+import path from "path";
+dotenv.config({ path: path.resolve(process.cwd(), "..", ".env") });
 
 const WHEAT_DATA = [
     { year: "1947-48", PB: 2595, SD: 371, KP: 280, BL: 55, PK: 3301 },

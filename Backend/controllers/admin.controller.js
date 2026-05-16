@@ -30,8 +30,8 @@ export const getAllUsers = async (req, res, next) => {
     // Build query
     const query = {};
     if (role) query.role = role;
-    if (isActive !== undefined) query.isActive = isActive === "true";
-    if (isVerified !== undefined) query.isVerified = isVerified === "true";
+    if (isActive !== undefined && isActive !== "") query.isActive = isActive === "true";
+    if (isVerified !== undefined && isVerified !== "") query.isVerified = isVerified === "true";
 
     // Search functionality
     if (search) {

@@ -83,6 +83,16 @@ const ReportSchema = new mongoose.Schema({
   },
   emailSentAt: Date,
 
+  // Generated Analysis Data (persisted for later viewing)
+  insights: [{
+    type: { type: String },
+    icon: String,
+    title: String,
+    text: String,
+  }],
+  chartData: mongoose.Schema.Types.Mixed,
+  summary: mongoose.Schema.Types.Mixed,
+
   // Metadata
   generatedAt: Date,
   expiresAt: Date, // Auto-delete old reports

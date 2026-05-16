@@ -30,15 +30,21 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
+      // Filter out empty strings from filters
+      const cleanFilters = Object.fromEntries(
+        Object.entries(filters).filter(([_, v]) => v !== "")
+      );
+
       const response = await adminAPI.getAllUsers({
         page,
         limit: 20,
-        ...filters,
+        ...cleanFilters,
       });
       setUsers(response.data.data);
       setTotalPages(response.data.pagination.pages);
     } catch (error) {
-      showError("Failed to fetch users");
+      console.error("Fetch users error:", error.response?.data || error.message);
+      showError(error.response?.data?.message || "Failed to fetch users");
     } finally {
       setLoading(false);
     }
