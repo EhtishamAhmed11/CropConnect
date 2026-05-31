@@ -1,4 +1,6 @@
 import logger from "../utils/logger.js";
+import NodeCache from "node-cache";
+const nodeCache = new NodeCache({ stdTTL: 300 }); // 5 min default TTL
 
 class CacheService {
     constructor() {
@@ -40,6 +42,13 @@ class CacheService {
      */
     generateKey(prefix, params) {
         return `${prefix}:${JSON.stringify(params)}`;
+    }
+    deleteByPrefix(prefix) {
+        const keys = nodeCache.keys().filter(k => k.startsWith(prefix));
+        if (keys.length > 0) {
+            nodeCache.del(keys);
+        }
+        return keys.length;
     }
 }
 

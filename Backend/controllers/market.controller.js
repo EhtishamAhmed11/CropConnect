@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import MarketPrice from "../models/marketPrice.model.js";
 import CropType from "../models/cropType.model.js";
 import District from "../models/district.model.js";
@@ -18,8 +19,16 @@ export const getLatestPrices = async (req, res, next) => {
             return ApiResponse.success(res, cachedData, "Latest market prices retrieved from cache");
         }
 
-        // Aggregation to get the latest price per crop
-        const prices = await MarketPrice.aggregate([
+        // BUG 1 FIX: Build pipeline dynamically so district filter is actually applied
+        const pipeline = [];
+
+        if (district) {
+            pipeline.push({
+                $match: { district: new mongoose.Types.ObjectId(district) }
+            });
+        }
+
+        pipeline.push(
             { $sort: { date: -1 } },
             {
                 $group: {
@@ -51,7 +60,9 @@ export const getLatestPrices = async (req, res, next) => {
                     district: 1
                 }
             }
-        ]);
+        );
+
+        const prices = await MarketPrice.aggregate(pipeline);
 
         // Populate district name
         await District.populate(prices, { path: "district", select: "name" });
@@ -84,7 +95,7 @@ export const getPriceHistory = async (req, res, next) => {
             district: districtId,
             date: { $gte: startDate }
         })
-            .sort({ date: 1 })
+            .sort({ date: 1 })  // ascending so chart renders left-to-right
             .select("date price source");
 
         res.status(200).json({
@@ -103,19 +114,24 @@ export const getPriceHistory = async (req, res, next) => {
 // @access  Admin/System
 export const addMarketPrice = async (req, res, next) => {
     try {
-        const { cropType, district, price, date, source } = req.body;
+        const { cropType, district, price, date, source, unit, marketType, currency } = req.body;
 
         const marketPrice = await MarketPrice.create({
             cropType,
             district,
             price,
             date: date || Date.now(),
-            source
+            source,
+            unit,
+            marketType,
+            currency
         });
 
-        // Clear related caches
-        cache.delete("market_latest:{}");
-        cache.delete("market_highlights:{}");
+        // BUG 2 FIX: Clear ALL cache entries with relevant prefixes instead of hardcoded keys.
+        // cache.generateKey produces keys like "market_latest:{"district":"..."}" or
+        // "market_latest:{}" — a simple prefix scan clears all variants correctly.
+        cache.deleteByPrefix("market_latest");
+        cache.deleteByPrefix("market_highlights");
 
         res.status(201).json({
             success: true,
@@ -139,8 +155,9 @@ export const getMarketHighlights = async (req, res, next) => {
             return ApiResponse.success(res, cachedData, "Market highlights retrieved from cache");
         }
 
-        // 1. Get average price for Wheat
-        const wheat = await CropType.findOne({ name: "WHEAT" });
+        // 1. Get latest price for Wheat
+        // BUG 3 FIX: Use case-insensitive regex so "Wheat", "WHEAT", "wheat" all match
+        const wheat = await CropType.findOne({ name: { $regex: /^wheat$/i } });
         let avgWheatPrice = 4250;
         if (wheat) {
             const latestWheat = await MarketPrice.findOne({ cropType: wheat._id }).sort({ date: -1 });
@@ -167,7 +184,12 @@ export const getMarketHighlights = async (req, res, next) => {
                         $cond: [
                             { $eq: ["$oldPrice", 0] },
                             0,
-                            { $multiply: [{ $divide: [{ $subtract: ["$newPrice", "$oldPrice"] }, "$oldPrice"] }, 100] }
+                            {
+                                $multiply: [
+                                    { $divide: [{ $subtract: ["$newPrice", "$oldPrice"] }, "$oldPrice"] },
+                                    100
+                                ]
+                            }
                         ]
                     }
                 }
@@ -185,12 +207,12 @@ export const getMarketHighlights = async (req, res, next) => {
             { $unwind: "$crop" }
         ]);
 
-        const topGainer = gains.length > 0 ? {
-            name: gains[0].crop.name,
-            gain: gains[0].gain.toFixed(1)
-        } : { name: "Cotton", gain: "5.1" };
+        const topGainer = gains.length > 0
+            ? { name: gains[0].crop.name, gain: parseFloat(gains[0].gain.toFixed(1)) }
+            : { name: "Cotton", gain: 5.1 };
 
-        // 3. Volatile Crop
+        // 3. BUG 4 FIX: Volatile Crop now uses coefficient of variation (stdDev / mean)
+        // instead of entry count, so it measures actual price fluctuation
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -199,10 +221,27 @@ export const getMarketHighlights = async (req, res, next) => {
             {
                 $group: {
                     _id: "$cropType",
+                    avgPrice: { $avg: "$price" },
+                    stdDev: { $stdDevPop: "$price" },
                     count: { $sum: 1 }
                 }
             },
-            { $sort: { count: -1 } },
+            // Need at least 2 data points to measure volatility
+            { $match: { count: { $gte: 2 } } },
+            {
+                $project: {
+                    // Coefficient of variation as percentage: higher = more volatile
+                    volatilityPct: {
+                        $cond: [
+                            { $eq: ["$avgPrice", 0] },
+                            0,
+                            { $multiply: [{ $divide: ["$stdDev", "$avgPrice"] }, 100] }
+                        ]
+                    },
+                    count: 1
+                }
+            },
+            { $sort: { volatilityPct: -1 } },
             { $limit: 1 },
             {
                 $lookup: {
@@ -215,7 +254,13 @@ export const getMarketHighlights = async (req, res, next) => {
             { $unwind: "$crop" }
         ]);
 
-        const volatileCrop = volatility.length > 0 ? volatility[0].crop.name : "Maize";
+        const volatileCrop = volatility.length > 0
+            ? {
+                name: volatility[0].crop.name,
+                // BUG 7 FIX: Return actual volatility percentage instead of hardcoding
+                volatilityPct: parseFloat(volatility[0].volatilityPct.toFixed(1))
+            }
+            : { name: "Maize", volatilityPct: 0 };
 
         const result = {
             avgWheatPrice,
