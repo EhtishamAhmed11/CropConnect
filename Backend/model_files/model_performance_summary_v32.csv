@@ -1,0 +1,13 @@
+Crop,Region,Best_Model,Train_R2,Test_R2,CV_R2,Test_RMSE,Test_MAE,MAPE
+Wheat,Punjab,ElasticNet,0.9967,0.8468,0.8185,600.62,449.18,2.3
+Wheat,Sindh,ElasticNet,0.9843,0.4794,0.4075,148.24,118.43,2.99
+Wheat,KPK,ElasticNet,0.9723,0.6577,0.2904,68.36,56.07,4.31
+Wheat,Balochistan,ElasticNet,0.9669,0.8414,-0.0226,97.04,69.25,5.97
+Rice,Punjab,ElasticNet,0.9994,0.9944,0.8703,68.29,51.82,1.0
+Rice,Sindh,ElasticNet,0.942,0.4841,0.6426,329.5,247.6,12.41
+Rice,KPK,ElasticNet,0.9952,0.7809,0.3193,12.33,9.24,7.95
+Rice,Balochistan,ElasticNet,0.9088,0.4383,0.3542,107.5,65.02,40.05
+Cotton,Punjab,ElasticNet,0.9994,0.9994,0.9425,8.15,6.51,0.52
+Cotton,Sindh,ElasticNet,0.9352,0.5081,0.5552,86.92,69.63,15.57
+Cotton,KPK,ElasticNet,0.7467,0.1711,0.3932,0.11,0.09,108.72
+Cotton,Balochistan,RidgeCV,0.9978,0.8612,-1.1231,3.53,3.04,14.88

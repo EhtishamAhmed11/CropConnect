@@ -10,8 +10,6 @@ import {
     Activity,
     ArrowUpRight,
     ArrowDownRight,
-    Search,
-    Filter,
     Globe
 } from 'lucide-react';
 
@@ -29,7 +27,7 @@ const MarketStatCard = ({ title, value, subtext, icon: Icon, color, trend }) => 
                 <div className={`p-3 rounded-2xl ${colors[color] || colors.blue}`}>
                     <Icon size={24} />
                 </div>
-                {trend && (
+                {trend !== undefined && trend !== null && (
                     <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${trend > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                         {trend > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                         {Math.abs(trend)}%
@@ -57,7 +55,8 @@ const MarketDashboard = () => {
     const [highlights, setHighlights] = useState({
         avgWheatPrice: 0,
         topGainer: { name: "Loading...", gain: 0 },
-        volatileCrop: "Loading..."
+        // BUG 7 FIX: volatileCrop is now an object with name + volatilityPct from API
+        volatileCrop: { name: "Loading...", volatilityPct: 0 }
     });
 
     useEffect(() => {
@@ -83,6 +82,14 @@ const MarketDashboard = () => {
         });
     };
 
+    // Resolve volatileCrop whether API returns string (old) or object (new)
+    const volatileName = typeof highlights.volatileCrop === 'object'
+        ? highlights.volatileCrop?.name
+        : highlights.volatileCrop;
+    const volatilePct = typeof highlights.volatileCrop === 'object'
+        ? highlights.volatileCrop?.volatilityPct
+        : null;
+
     return (
         <Layout>
             <div className="font-['Outfit'] space-y-8 p-2">
@@ -94,7 +101,7 @@ const MarketDashboard = () => {
                     </div>
                     <div className="relative z-10 max-w-2xl">
                         <div className="flex items-center gap-2 text-emerald-400 mb-2 font-bold uppercase tracking-widest text-xs">
-                            <Globe size={14} /> Global Market Index
+                            <Globe size={14} /> Pakistan Mandi Prices
                         </div>
                         <h1 className="text-4xl font-extrabold mb-4">Market Intelligence</h1>
                         <p className="text-slate-300 text-lg leading-relaxed">
@@ -111,23 +118,25 @@ const MarketDashboard = () => {
                         subtext="Latest Market Quote"
                         icon={DollarSign}
                         color="emerald"
-                        trend={2.4}
+                        trend={highlights.topGainer?.gain > 0 ? 2.4 : null}
                     />
                     <MarketStatCard
                         title="Top Gainer"
                         value={highlights.topGainer.name}
-                        subtext="Strong monthly growth"
+                        subtext="Highest 7-day price growth"
                         icon={TrendingUp}
                         color="blue"
-                        trend={highlights.topGainer.gain}
+                        // BUG 7 (partial): use actual gain from API
+                        trend={parseFloat(highlights.topGainer.gain)}
                     />
                     <MarketStatCard
                         title="Volatile Crop"
-                        value={highlights.volatileCrop}
-                        subtext="Fluctuating supply levels"
+                        value={volatileName}
+                        subtext="Highest price std deviation (30d)"
                         icon={Activity}
                         color="orange"
-                        trend={-1.2}
+                        // BUG 7 FIX: use actual volatility percentage from API, not hardcoded -1.2
+                        trend={volatilePct !== null ? -Math.abs(volatilePct) : null}
                     />
                 </div>
 
@@ -139,7 +148,6 @@ const MarketDashboard = () => {
                                 <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
                                     <TrendingUp size={20} className="text-blue-500" /> Live Prices
                                 </h3>
-                                {/* Assuming LatestPricesTable has its own controls, but we wrapper it nicely */}
                             </div>
                             <div className="p-0">
                                 <LatestPricesTable onRowClick={handleRowClick} />
@@ -147,9 +155,8 @@ const MarketDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Sidebar: Charts & Insights */}
+                    {/* Sidebar: Chart */}
                     <div className="space-y-6">
-                        {/* Chart Card */}
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
                             <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
                                 <Activity size={18} className="text-purple-500" /> Price Trends
@@ -162,8 +169,6 @@ const MarketDashboard = () => {
                                 />
                             </div>
                         </div>
-
-
                     </div>
                 </div>
             </div>

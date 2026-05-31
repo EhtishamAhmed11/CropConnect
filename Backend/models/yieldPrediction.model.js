@@ -39,6 +39,20 @@ const YieldPredictionSchema = new mongoose.Schema(
             },
         },
 
+        // Confidence Intervals (from ML model)
+        confidenceInterval: {
+            lower80: { type: Number, default: null },
+            upper80: { type: Number, default: null },
+            lower95: { type: Number, default: null },
+            upper95: { type: Number, default: null },
+        },
+
+        // Weather forecast context used for this prediction
+        forecastWeather: {
+            rainfallMm:  { type: Number, default: null },
+            tempC:       { type: Number, default: null },
+        },
+
         // Model Information
         modelType: {
             type: String,

@@ -1,42 +1,45 @@
 import { useState, useEffect } from 'react';
 import {
-    ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend
+    ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
-import { Card, CardContent, Typography, Box } from '@mui/material';
+import { Card, CardContent, Typography, Box, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { marketAPI } from '../../api/marketApi';
 import { TrendingUp } from 'lucide-react';
 
 const PriceTrendChart = ({ cropId, districtId, cropName }) => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [days, setDays] = useState(30);
 
     useEffect(() => {
+        // BUG 6 FIX: cropId and districtId must be real MongoDB ObjectIds.
+        // LatestPricesTable now passes row.cropId (ObjectId from backend projection)
+        // and row.district._id — so this check is sufficient.
         if (!cropId || !districtId) return;
 
         const fetchData = async () => {
             setLoading(true);
             try {
-                // In a real app we'd filter locally or call API with these new names (since we're passing names now from the Table click)
-                // For this demo, let's just re-fetch history which normally takes IDs. 
-                // We'll simulate fetching by calling history.
-                const response = await marketAPI.getPriceHistory(cropId, districtId);
+                const response = await marketAPI.getPriceHistory(cropId, districtId, days);
                 if (response.data.success) {
-                    const formattedDetails = response.data.data.map(item => ({
+                    // BUG 5 FIX: API returns data sorted { date: 1 } (oldest → newest),
+                    // which is exactly what the chart needs for left-to-right time flow.
+                    // Removed the erroneous .reverse() call that was flipping the order.
+                    const formattedData = response.data.data.map(item => ({
                         date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                         price: item.price
                     }));
-                    // Sort by date to be sure
-                    setData(formattedDetails.reverse());
+                    setData(formattedData);
                 }
             } catch (error) {
-                console.error("Error fetching history", error);
+                console.error("Error fetching price history", error);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchData();
-    }, [cropId, districtId]);
+    }, [cropId, districtId, days]);
 
     // Empty State
     if (!cropId || !districtId) {
@@ -58,14 +61,30 @@ const PriceTrendChart = ({ cropId, districtId, cropName }) => {
                     <Typography variant="h6" className="font-bold text-gray-900">
                         {cropName} Price Trend
                     </Typography>
-                    <div className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">
-                        Live Data
+                    <div className="flex items-center gap-2">
+                        <ToggleButtonGroup
+                            value={days}
+                            exclusive
+                            onChange={(_, val) => val && setDays(val)}
+                            size="small"
+                        >
+                            <ToggleButton value={7} sx={{ fontSize: '0.65rem', py: 0.3, px: 1 }}>7D</ToggleButton>
+                            <ToggleButton value={30} sx={{ fontSize: '0.65rem', py: 0.3, px: 1 }}>30D</ToggleButton>
+                            <ToggleButton value={90} sx={{ fontSize: '0.65rem', py: 0.3, px: 1 }}>90D</ToggleButton>
+                        </ToggleButtonGroup>
+                        <div className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded">
+                            Live Data
+                        </div>
                     </div>
                 </div>
 
                 <Box sx={{ height: 300, width: '100%' }}>
                     {loading ? (
                         <div className="flex h-full items-center justify-center text-gray-400">Loading trend...</div>
+                    ) : data.length === 0 ? (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-sm">
+                            No price history found for this period.
+                        </div>
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={data} margin={{ top: 5, right: 0, bottom: 0, left: 0 }}>

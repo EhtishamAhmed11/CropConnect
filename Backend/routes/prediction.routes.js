@@ -10,6 +10,9 @@ router.get("/forecast", predictionController.getForecastData);
 // Get combined historical + forecast timeline
 router.get("/timeline", predictionController.getTimelineData);
 
+// Get actual vs predicted validation data
+router.get("/actual-vs-predicted", predictionController.getActualVsPredicted);
+
 // Get model performance metrics
 router.get("/performance", predictionController.getModelPerformance);
 

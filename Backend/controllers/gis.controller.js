@@ -9,18 +9,243 @@ import ApiResponse from "../utils/apiResponse.js";
 import * as Calculations from "../utils/calculations.js";
 import * as LogisticsService from "../services/logistics.service.js";
 
-// Simple cache for optimized routes (in-memory, lasts until server restart)
-const routeCache = new Map();
-// Caches for GeoJSON and map data
+// ─── Cache layer ──────────────────────────────────────────────────────────────
+const routeCache   = new Map();
 const geoJsonCache = new Map();
 const mapDataCache = new Map();
-const GEOJSON_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-const MAP_DATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// District coordinate lookup — built once at server startup, never re-queried
+let districtCoordCache = null;
 
+const GEOJSON_TTL   = 60 * 60 * 1000;  // 1 hour  — boundaries never change
+const MAP_DATA_TTL  =  5 * 60 * 1000;  // 5 mins  — seeded data, low churn
+const ROUTE_TTL     = 10 * 60 * 1000;  // 10 mins — optimization results
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const TRUCK_CAPACITY_TONNES   = 20;     // Standard articulated truck load
+const COST_PER_TRUCK_PER_KM   = 250;   // PKR per truck per km (NLC/road transport rate)
+const ROAD_DISTANCE_FACTOR    = 1.35;  // Road distance ≈ 35% longer than straight line
+                                        // (standard correction for South Asian road networks)
+const MIN_VIABLE_AMOUNT       = 10;    // tonnes — skip trivial shipments below this
+const SURPLUS_THRESHOLD       = 100;   // tonnes — meaningful surplus threshold
+const DEFICIT_THRESHOLD       = 100;   // tonnes — meaningful deficit threshold
+
+// Crop value PKR/tonne — used for cost-to-value viability check
+const CROP_VALUE_PER_TONNE = { WHEAT: 40000, RICE: 80000, COTTON: 120000 };
+// Max logistics cost as % of cargo value — routes above this aren't viable
+const MAX_LOGISTICS_RATIO  = 0.35;
+
+// ─── Utility: Haversine distance ─────────────────────────────────────────────
+function haversineDistance(coords1, coords2) {
+  const R = 6371;
+  const [lon1, lat1] = coords1;
+  const [lon2, lat2] = coords2;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ─── Utility: Realistic transport cost (load-aware) ──────────────────────────
+function calculateTransportCost(distanceKm, amountTonnes) {
+  const roadKm     = distanceKm * ROAD_DISTANCE_FACTOR;
+  const numTrucks  = Math.ceil(amountTonnes / TRUCK_CAPACITY_TONNES);
+  return Math.round(roadKm * numTrucks * COST_PER_TRUCK_PER_KM);
+}
+
+// ─── Utility: Toll cost using actual TollRate records ────────────────────────
+function estimateTollCost(distanceKm, tollRates) {
+  if (!tollRates || tollRates.length === 0) return 0;
+  const roadKm = distanceKm * ROAD_DISTANCE_FACTOR;
+  // Estimate number of toll plazas hit — motorway plazas ~100km apart in Pakistan
+  const segments = Math.ceil(roadKm / 100);
+  const motorwayRates = tollRates.filter(r => r.highwayType === "motorway");
+  if (motorwayRates.length === 0) return 0;
+  const avgToll = motorwayRates.reduce(
+    (sum, r) => sum + (r.rates?.articulatedTruck || 0), 0
+  ) / motorwayRates.length;
+  return Math.round(segments * avgToll);
+}
+
+// ─── Utility: Build district coordinate lookup (called once) ─────────────────
+async function getDistrictCoords() {
+  if (districtCoordCache) return districtCoordCache;
+  const districts = await District.find({ isActive: true })
+    .select("code coordinates")
+    .lean();
+  districtCoordCache = {};
+  for (const d of districts) {
+    if (d.coordinates?.latitude && d.coordinates?.longitude) {
+      districtCoordCache[d.code] = [d.coordinates.longitude, d.coordinates.latitude];
+    }
+  }
+  return districtCoordCache;
+}
+
+// ─── Pre-compute pairwise distance matrix ────────────────────────────────────
+function buildDistanceMatrix(regions) {
+  const matrix = {};
+  for (const r1 of regions) {
+    matrix[r1.id] = {};
+    for (const r2 of regions) {
+      if (r1.coords && r2.coords) {
+        matrix[r1.id][r2.id] = haversineDistance(r1.coords, r2.coords);
+      }
+    }
+  }
+  return matrix;
+}
+
+// ─── getSurplusDeficitMapData ─────────────────────────────────────────────────
 /**
- * @desc    Get optimized distribution routes with toll and transport costs
+ * @desc    Get surplus/deficit map data
+ * @route   GET /api/gis/surplus-deficit-map
+ * @access  Public
+ *
+ * IMPROVEMENT: Reads pre-calculated values from SurplusDeficit collection
+ * instead of re-running balance math on every request.
+ * Falls back to live calculation if SurplusDeficit is empty.
+ */
+export const getSurplusDeficitMapData = async (req, res, next) => {
+  try {
+    const { year, crop, level = "district" } = req.query;
+
+    if (!year || !crop) {
+      return ApiResponse.error(res, "Year and crop are required", 400);
+    }
+
+    const cacheKey = `sd-map-${year}-${crop.toUpperCase()}-${level}`;
+    const cached = mapDataCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < MAP_DATA_TTL) {
+      return ApiResponse.success(res, cached.data, "Surplus/deficit map data retrieved from cache");
+    }
+
+    // ── Try reading from SurplusDeficit collection first (fast path) ──────────
+    const surplusDeficitDocs = await SurplusDeficit.find({
+      year,
+      cropCode: crop.toUpperCase(),
+      level,
+    })
+      .populate(
+        level === "district" ? "district" : "province",
+        "name code coordinates geometry"
+      )
+      .lean();
+
+    let mapData;
+
+    if (surplusDeficitDocs && surplusDeficitDocs.length > 0) {
+      // Fast path — data already calculated in seed
+      mapData = surplusDeficitDocs.map(doc => {
+        const region = level === "district" ? doc.district : doc.province;
+
+        let color = "#10b981"; // surplus green
+        if (doc.status === "deficit") {
+          if (doc.severity === "critical")      color = "#ef4444";
+          else if (doc.severity === "moderate") color = "#f97316";
+          else                                  color = "#eab308";
+        } else if (doc.status === "balanced") {
+          color = "#64748b";
+        }
+
+        return {
+          regionCode:   level === "district" ? doc.districtCode : doc.provinceCode,
+          regionName:   region?.name,
+          coordinates:  region?.coordinates,
+          geometry:     region?.geometry,
+          status:       doc.status,
+          severity:     doc.severity,
+          balance:      doc.balance,
+          production:   doc.production,
+          consumption:  doc.consumption,
+          color,
+          year:         doc.year,
+          crop:         doc.cropCode,
+          selfSufficiencyRatio:     doc.selfSufficiencyRatio,
+          surplusDeficitPercentage: doc.surplusDeficitPercentage,
+          requiresIntervention:     doc.requiresIntervention,
+          dataSource:   doc.dataSource,
+        };
+      });
+
+    } else {
+      // Fallback — live calculation from ProductionData (no seed data yet)
+      const productionData = await ProductionData.find({
+        year, cropCode: crop.toUpperCase(), level,
+      })
+        .populate("province", "name code coordinates geometry population")
+        .populate("district", "name code coordinates geometry population")
+        .lean();
+
+      if (!productionData || productionData.length === 0) {
+        return ApiResponse.success(res, [], "No production data found");
+      }
+
+      const cropType = await CropType.findOne({ code: crop.toUpperCase() }).lean();
+      const avgConsumption = cropType?.avgConsumptionPerCapita || 0;
+
+      mapData = productionData.map(prodItem => {
+        const region     = level === "district" ? prodItem.district : prodItem.province;
+        const regionCode = level === "district" ? prodItem.districtCode : prodItem.provinceCode;
+        const population = region?.population || 0;
+        const production = prodItem.production.value;
+        const consumption = (population * avgConsumption) / 1000;
+        const calcResults = Calculations.calculateSurplusDeficit(production, consumption);
+
+        let color = "#10b981";
+        if (calcResults.status === "deficit") {
+          if (calcResults.severity === "critical")      color = "#ef4444";
+          else if (calcResults.severity === "moderate") color = "#f97316";
+          else                                          color = "#eab308";
+        } else if (calcResults.status === "balanced") {
+          color = "#64748b";
+        }
+
+        return {
+          regionCode,
+          regionName:   region?.name,
+          coordinates:  region?.coordinates,
+          geometry:     region?.geometry,
+          status:       calcResults.status,
+          severity:     calcResults.severity,
+          balance:      calcResults.balance,
+          production,
+          consumption,
+          color,
+          year:         prodItem.year,
+          crop:         prodItem.cropCode,
+          selfSufficiencyRatio:     calcResults.selfSufficiencyRatio,
+          surplusDeficitPercentage: calcResults.surplusDeficitPercentage,
+          requiresIntervention:     calcResults.requiresIntervention,
+          dataSource:   "live_calculation",
+        };
+      });
+    }
+
+    mapDataCache.set(cacheKey, { data: mapData, timestamp: Date.now() });
+    return ApiResponse.success(res, mapData, "Surplus/deficit map data retrieved successfully");
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── getOptimizedRoutes ───────────────────────────────────────────────────────
+/**
+ * @desc    Get optimized distribution routes with realistic cost estimates
  * @route   GET /api/gis/optimize-routes
  * @access  Public
+ *
+ * IMPROVEMENTS vs original:
+ *   1. Reads from SurplusDeficit collection — no re-calculation of balance
+ *   2. Road distance factor (×1.35) — more accurate than straight-line
+ *   3. Load-aware transport cost — cost scales with number of trucks needed
+ *   4. Cost-to-value viability check — skip routes where logistics > 35% of cargo value
+ *   5. Pre-computed distance matrix — O(n²) once, then O(1) lookups
+ *   6. Toll cost uses 100km plaza intervals (Pakistan motorway standard)
  */
 export const getOptimizedRoutes = async (req, res, next) => {
   try {
@@ -30,263 +255,224 @@ export const getOptimizedRoutes = async (req, res, next) => {
       return ApiResponse.error(res, "Year and crop are required", 400);
     }
 
-    const targetYear = year;
-
-    // Check cache first
-    const cacheKey = `optimized-routes-${targetYear}-${crop.toUpperCase()}-${level}`;
-    const cached = routeCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < 10 * 60 * 1000) {
+    const cropUpper = crop.toUpperCase();
+    const cacheKey  = `optimized-routes-${year}-${cropUpper}-${level}`;
+    const cached    = routeCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < ROUTE_TTL) {
       return ApiResponse.success(res, cached.data, "Routes retrieved from cache");
     }
 
-    // 1. Get Production Data (Basis for optimization)
-    const productionData = await ProductionData.find({
-      year: targetYear,
-      cropCode: crop.toUpperCase(),
+    // ── 1. Load pre-calculated surplus/deficit records ────────────────────────
+    const sdDocs = await SurplusDeficit.find({
+      year,
+      cropCode: cropUpper,
       level,
     })
-      .populate("district", "name code coordinates population")
-      .populate("province", "name code coordinates population")
+      .populate(
+        level === "district" ? "district" : "province",
+        "name code coordinates"
+      )
       .lean();
 
-    if (!productionData || productionData.length === 0) {
-      return ApiResponse.success(res, { routes: [], stats: { coveragePercent: 0 } }, "No production data found");
+    if (!sdDocs || sdDocs.length === 0) {
+      return ApiResponse.success(
+        res,
+        { routes: [], stats: { coveragePercent: 0 }, regions: [] },
+        "No surplus/deficit data found. Run the seed first."
+      );
     }
 
-    // Get crop details for consumption calculation
-    const cropType = await CropType.findOne({ code: crop.toUpperCase() }).lean();
-    const avgConsumption = cropType?.avgConsumptionPerCapita || 0;
-
-    // 2. Get toll rates
+    // ── 2. Load toll rates ────────────────────────────────────────────────────
     const tollRates = await TollRate.find({ isActive: true }).lean();
-    const TRANSPORT_COST_PER_KM = 250;
 
-    // 3. Prepare data sets (Dynamic Balance Calculation)
-    const processedRegions = productionData.map(item => {
-      const region = level === "district" ? item.district : item.province;
-      const population = region?.population || 0;
-      const production = item.production.value;
-      const consumption = (population * avgConsumption) / 1000; // in tonnes
-      const balance = production - consumption;
+    // ── 3. Build region list with coordinates ─────────────────────────────────
+    const coordCache = await getDistrictCoords();
+
+    const regions = sdDocs.map(doc => {
+      const region    = level === "district" ? doc.district : doc.province;
+      const code      = level === "district" ? doc.districtCode : doc.provinceCode;
+      const coords    = coordCache[code] ||
+        (region?.coordinates
+          ? [region.coordinates.longitude, region.coordinates.latitude]
+          : null);
 
       return {
-        id: level === "district" ? item.districtCode : item.provinceCode,
-        name: region?.name || item.districtCode || item.provinceCode,
-        production,
-        consumption,
-        balance,
-        coords: region?.coordinates
-          ? [region.coordinates.longitude, region.coordinates.latitude]
-          : null,
+        id:          code,
+        name:        region?.name || code,
+        production:  doc.production,
+        consumption: doc.consumption,
+        balance:     doc.balance,
+        status:      doc.status,
+        severity:    doc.severity,
+        coords,
       };
     });
 
-    let surpluses = processedRegions
-      .filter((r) => r.balance > 100) // Threshold for meaningful surplus
-      .map((r) => ({ ...r, available: r.balance }))
-      .filter((s) => s.coords);
+    // ── 4. Split into surpluses and deficits ──────────────────────────────────
+    let surpluses = regions
+      .filter(r => r.balance > SURPLUS_THRESHOLD && r.coords)
+      .map(r => ({ ...r, available: r.balance }));
 
-    let deficits = processedRegions
-      .filter((r) => r.balance < -100)
-      .map((r) => ({
-        ...r,
-        needed: Math.abs(r.balance),
-        originalNeed: Math.abs(r.balance),
-      }))
-      .filter((d) => d.coords)
-      .sort((a, b) => b.needed - a.needed);
+    let deficits = regions
+      .filter(r => r.balance < -DEFICIT_THRESHOLD && r.coords)
+      .map(r => ({ ...r, needed: Math.abs(r.balance), originalNeed: Math.abs(r.balance) }))
+      .sort((a, b) => b.needed - a.needed); // worst deficit first
 
-    // 4. Optimization Engine
-    const routes = [];
-    let totalTollCost = 0;
+    if (surpluses.length === 0 || deficits.length === 0) {
+      const result = {
+        routes: [],
+        stats:  {
+          totalDeficit:     Math.round(deficits.reduce((s, d) => s + d.originalNeed, 0)),
+          totalSurplus:     Math.round(surpluses.reduce((s, r) => s + r.available, 0)),
+          coveredDeficit:   0,
+          coveragePercent:  0,
+          uncoveredRegions: deficits.map(d => d.name),
+          totalTollCost:       0,
+          totalTransportCost:  0,
+          grandTotalCost:      0,
+          routeCount:          0,
+        },
+        regions,
+      };
+      routeCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      return ApiResponse.success(res, result, "No viable routes — no matching surplus/deficit regions");
+    }
+
+    // ── 5. Pre-compute distance matrix ────────────────────────────────────────
+    const allRegions = [...surpluses, ...deficits];
+    const distMatrix = buildDistanceMatrix(allRegions);
+
+    // ── 6. Greedy nearest-neighbour matching with viability filter ────────────
+    const routes         = [];
+    let totalTollCost    = 0;
     let totalTransportCost = 0;
-    let routeCounter = 0;
+    let routeCounter     = 0;
+    const cropValue      = CROP_VALUE_PER_TONNE[cropUpper] || 40000;
 
     for (const deficit of deficits) {
-      const nearbySurpluses = surpluses
-        .filter((s) => s.available > 0)
-        .map((s) => {
-          const dist = haversineDistance(s.coords, deficit.coords);
-          return { ...s, dist };
-        })
+      const candidates = surpluses
+        .filter(s => s.available > 0 && distMatrix[s.id]?.[deficit.id] !== undefined)
+        .map(s => ({ ...s, dist: distMatrix[s.id][deficit.id] }))
         .sort((a, b) => a.dist - b.dist);
 
-      for (const supplier of nearbySurpluses) {
+      for (const supplier of candidates) {
         if (deficit.needed <= 0) break;
 
         const amountToMove = Math.min(deficit.needed, supplier.available);
-        if (amountToMove <= 10) continue;
+        if (amountToMove < MIN_VIABLE_AMOUNT) continue;
 
-        const distanceKm = supplier.dist;
-        const estimatedToll = estimateTollCost(distanceKm, tollRates);
-        const transportCost = Math.round(distanceKm * TRANSPORT_COST_PER_KM);
-        const estimatedDuration = Math.round((distanceKm / 50) * 60);
+        const haversineKm  = supplier.dist;
+        const roadKm       = Math.round(haversineKm * ROAD_DISTANCE_FACTOR);
+        const transportCost = calculateTransportCost(haversineKm, amountToMove);
+        const tollCost      = estimateTollCost(haversineKm, tollRates);
+        const totalCost     = transportCost + tollCost;
+
+        // Viability check: skip if logistics cost > MAX_LOGISTICS_RATIO of cargo value
+        const cargoValue = amountToMove * cropValue;
+        if (totalCost > cargoValue * MAX_LOGISTICS_RATIO) continue;
+
+        const numTrucks         = Math.ceil(amountToMove / TRUCK_CAPACITY_TONNES);
+        const estimatedDuration = Math.round((roadKm / 50) * 60); // minutes at 50 km/h avg
 
         routes.push({
-          id: `route-${supplier.id}-${deficit.id}-${routeCounter++}`,
-          sourceName: supplier.name,
-          destName: deficit.name,
-          from: supplier.coords,
-          to: deficit.coords,
-          amount: Math.round(amountToMove),
-          distance: Math.round(distanceKm),
+          id:           `route-${supplier.id}-${deficit.id}-${routeCounter++}`,
+          sourceName:   supplier.name,
+          sourceCode:   supplier.id,
+          destName:     deficit.name,
+          destCode:     deficit.id,
+          from:         supplier.coords,
+          to:           deficit.coords,
+          amount:       Math.round(amountToMove),
+          distance:     roadKm,           // road distance shown to user
+          haversineKm:  Math.round(haversineKm),
+          numTrucks,
           costs: {
-            toll: estimatedToll,
             transport: transportCost,
-            total: estimatedToll + transportCost
+            toll:      tollCost,
+            total:     totalCost,
           },
           estimatedDuration,
+          deficitSeverity: deficit.severity,
         });
 
-        totalTollCost += estimatedToll;
+        totalTollCost      += tollCost;
         totalTransportCost += transportCost;
-        deficit.needed -= amountToMove;
+        deficit.needed     -= amountToMove;
 
+        // Update master surplus list
         const masterIdx = surpluses.findIndex(s => s.id === supplier.id);
         if (masterIdx !== -1) surpluses[masterIdx].available -= amountToMove;
       }
     }
 
-    // 5. Aggregate Results
-    const totalDeficit = deficits.reduce((acc, d) => acc + d.originalNeed, 0);
-    const coveredDeficit = routes.reduce((acc, r) => acc + r.amount, 0);
-    const totalSurplus = processedRegions.filter(r => r.balance > 0).reduce((acc, r) => acc + r.balance, 0);
+    // ── 7. Aggregate stats ────────────────────────────────────────────────────
+    const totalDeficit    = deficits.reduce((acc, d) => acc + d.originalNeed, 0);
+    const coveredDeficit  = routes.reduce((acc, r) => acc + r.amount, 0);
+    const totalSurplus    = surpluses.reduce((acc, s) => acc + (s.balance || 0), 0);
+    const grandTotalCost  = totalTollCost + totalTransportCost;
 
     const result = {
       routes,
       stats: {
-        totalDeficit: Math.round(totalDeficit),
-        totalSurplus: Math.round(totalSurplus),
-        coveredDeficit: Math.round(coveredDeficit),
-        coveragePercent: totalDeficit > 0 ? Math.round((coveredDeficit / totalDeficit) * 100) : 0,
-        uncoveredRegions: deficits.filter(d => d.needed > 100).map(d => d.name),
-        totalTollCost: Math.round(totalTollCost),
+        totalDeficit:      Math.round(totalDeficit),
+        totalSurplus:      Math.round(totalSurplus),
+        coveredDeficit:    Math.round(coveredDeficit),
+        coveragePercent:   totalDeficit > 0 ? Math.round((coveredDeficit / totalDeficit) * 100) : 0,
+        uncoveredRegions:  deficits.filter(d => d.needed > DEFICIT_THRESHOLD).map(d => d.name),
+        totalTollCost:     Math.round(totalTollCost),
         totalTransportCost: Math.round(totalTransportCost),
-        grandTotalCost: Math.round(totalTollCost + totalTransportCost),
-        routeCount: routes.length
+        grandTotalCost:    Math.round(grandTotalCost),
+        routeCount:        routes.length,
+        totalTrucks:       routes.reduce((s, r) => s + r.numTrucks, 0),
+        costPerTonne:      coveredDeficit > 0 ? Math.round(grandTotalCost / coveredDeficit) : 0,
+        // Viability note shown in UI
+        note: `Road distance = Haversine × ${ROAD_DISTANCE_FACTOR}. Transport cost = PKR ${COST_PER_TRUCK_PER_KM}/truck/km × ceil(amount/${TRUCK_CAPACITY_TONNES}t) trucks.`,
       },
-      regions: processedRegions
+      regions,
     };
 
     routeCache.set(cacheKey, { data: result, timestamp: Date.now() });
-
     return ApiResponse.success(res, result, "Optimized routes calculated successfully");
+
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Haversine formula for distance calculation (km)
- */
-function haversineDistance(coords1, coords2) {
-  const R = 6371; // Earth's radius in km
-  const [lon1, lat1] = coords1;
-  const [lon2, lat2] = coords2;
-
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-/**
- * Estimate toll cost based on distance and toll rates
- * Assumes articulated truck for bulk transport
- */
-function estimateTollCost(distanceKm, tollRates) {
-  if (!tollRates || tollRates.length === 0) return 0;
-
-  // Estimate: every ~300km covers one major toll segment
-  const segments = Math.ceil(distanceKm / 300);
-
-  // Use average motorway toll for articulated truck
-  const motorwayRates = tollRates.filter((r) => r.highwayType === "motorway");
-  if (motorwayRates.length === 0) return 0;
-
-  const avgToll =
-    motorwayRates.reduce((sum, r) => sum + (r.rates?.articulatedTruck || 0), 0) /
-    motorwayRates.length;
-
-  return Math.round(segments * avgToll);
-}
-
-/**
- * @desc    Get all provinces with geographic data
- * @route   GET /api/gis/provinces
- * @access  Public
- */
+// ─── getProvinces ─────────────────────────────────────────────────────────────
 export const getProvinces = async (req, res, next) => {
   try {
     const provinces = await Province.find({ isActive: true })
       .select("code name population area coordinates geometry")
       .lean();
-
-    return ApiResponse.success(
-      res,
-      provinces,
-      "Provinces retrieved successfully"
-    );
-  } catch (error) {
-    next(error);
-  }
+    return ApiResponse.success(res, provinces, "Provinces retrieved successfully");
+  } catch (error) { next(error); }
 };
 
-/**
- * @desc    Get single province with details
- * @route   GET /api/gis/provinces/:code
- * @access  Public
- */
+// ─── getProvinceByCode ────────────────────────────────────────────────────────
 export const getProvinceByCode = async (req, res, next) => {
   try {
     const province = await Province.findOne({
-      code: req.params.code.toUpperCase(),
-      isActive: true,
+      code: req.params.code.toUpperCase(), isActive: true,
     }).lean();
-
-    if (!province) {
-      return ApiResponse.error(res, "Province not found", 404);
-    }
-
-    return ApiResponse.success(
-      res,
-      province,
-      "Province retrieved successfully"
-    );
-  } catch (error) {
-    next(error);
-  }
+    if (!province) return ApiResponse.error(res, "Province not found", 404);
+    return ApiResponse.success(res, province, "Province retrieved successfully");
+  } catch (error) { next(error); }
 };
 
-/**
- * @desc    Get districts with pagination
- * @route   GET /api/gis/districts
- * @access  Public
- */
+// ─── getDistricts ─────────────────────────────────────────────────────────────
 export const getDistricts = async (req, res, next) => {
   try {
     const { province, agriculturalZone, page = 1, limit = 100 } = req.query;
-
     const query = { isActive: true };
-    if (province) query.provinceCode = province.toUpperCase();
+    if (province)        query.provinceCode    = province.toUpperCase();
     if (agriculturalZone) query.agriculturalZone = agriculturalZone;
 
     const skip = (page - 1) * limit;
-
     const [districts, total] = await Promise.all([
       District.find(query)
         .populate("province", "name code")
-        .select(
-          "code name provinceCode population area coordinates geometry agriculturalZone"
-        )
+        .select("code name provinceCode population area coordinates geometry agriculturalZone")
         .sort({ name: 1 })
         .skip(skip)
         .limit(parseInt(limit))
@@ -294,351 +480,138 @@ export const getDistricts = async (req, res, next) => {
       District.countDocuments(query),
     ]);
 
-    return ApiResponse.paginated(
-      res,
-      districts,
-      page,
-      limit,
-      total,
-      "Districts retrieved successfully"
-    );
-  } catch (error) {
-    next(error);
-  }
+    return ApiResponse.paginated(res, districts, page, limit, total, "Districts retrieved successfully");
+  } catch (error) { next(error); }
 };
 
-/**
- * @desc    Get single district with details
- * @route   GET /api/gis/districts/:code
- * @access  Public
- */
+// ─── getDistrictByCode ────────────────────────────────────────────────────────
 export const getDistrictByCode = async (req, res, next) => {
   try {
     const district = await District.findOne({
-      code: req.params.code.toUpperCase(),
-      isActive: true,
-    })
-      .populate("province", "name code")
-      .lean();
-
-    if (!district) {
-      return ApiResponse.error(res, "District not found", 404);
-    }
-
-    return ApiResponse.success(
-      res,
-      district,
-      "District retrieved successfully"
-    );
-  } catch (error) {
-    next(error);
-  }
+      code: req.params.code.toUpperCase(), isActive: true,
+    }).populate("province", "name code").lean();
+    if (!district) return ApiResponse.error(res, "District not found", 404);
+    return ApiResponse.success(res, district, "District retrieved successfully");
+  } catch (error) { next(error); }
 };
 
-/**
- * @desc    Get production map data (for choropleth maps)
- * @route   GET /api/gis/production-map
- * @access  Public
- */
+// ─── getProductionMapData ─────────────────────────────────────────────────────
 export const getProductionMapData = async (req, res, next) => {
   try {
     const { year, crop, level = "provincial" } = req.query;
+    if (!year || !crop) return ApiResponse.error(res, "Year and crop are required", 400);
 
-    if (!year || !crop) {
-      return ApiResponse.error(res, "Year and crop are required", 400);
-    }
-
-    const query = {
-      year,
-      cropCode: crop.toUpperCase(),
-      level,
-    };
-
-    // Get production data
-    const productionData = await ProductionData.find(query)
+    const productionData = await ProductionData.find({ year, cropCode: crop.toUpperCase(), level })
       .populate("province", "name code coordinates geometry")
       .populate("district", "name code coordinates geometry")
       .lean();
 
-    // Format for map visualization
-    const mapData = productionData.map((item) => {
+    const mapData = productionData.map(item => {
       const region = level === "district" ? item.district : item.province;
-
       return {
-        regionCode:
-          level === "district" ? item.districtCode : item.provinceCode,
-        regionName: region?.name,
+        regionCode:  level === "district" ? item.districtCode : item.provinceCode,
+        regionName:  region?.name,
         coordinates: region?.coordinates,
-        geometry: region?.geometry,
-        production: item.production.value,
-        area: item.areaCultivated.value,
-        yield: item.yield.value,
-        year: item.year,
-        crop: item.cropName,
+        geometry:    region?.geometry,
+        production:  item.production.value,
+        area:        item.areaCultivated.value,
+        yield:       item.yield.value,
+        year:        item.year,
+        crop:        item.cropName,
       };
     });
 
-    return ApiResponse.success(
-      res,
-      mapData,
-      "Production map data retrieved successfully"
-    );
-  } catch (error) {
-    next(error);
-  }
+    return ApiResponse.success(res, mapData, "Production map data retrieved successfully");
+  } catch (error) { next(error); }
 };
 
-/**
- * @desc    Get surplus/deficit map data
- * @route   GET /api/gis/surplus-deficit-map
- * @access  Public
- */
-export const getSurplusDeficitMapData = async (req, res, next) => {
-  try {
-    const { year, crop, level = "provincial" } = req.query;
-
-    if (!year || !crop) {
-      return ApiResponse.error(res, "Year and crop are required", 400);
-    }
-
-    // Check cache
-    const cacheKey = `sd-map-${year}-${crop.toUpperCase()}-${level}`;
-    const cached = mapDataCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < MAP_DATA_CACHE_TTL) {
-      return ApiResponse.success(res, cached.data, "Surplus/deficit map data retrieved from cache");
-    }
-
-    const query = {
-      year,
-      cropCode: crop.toUpperCase(),
-      level,
-    };
-
-    // 1. Fetch ALL Production Data
-    const productionData = await ProductionData.find(query)
-      .populate("province", "name code coordinates geometry population")
-      .populate("district", "name code coordinates geometry population")
-      .lean();
-
-    if (!productionData || productionData.length === 0) {
-      return ApiResponse.success(res, [], "No production data found");
-    }
-
-    // 2. Fetch crop details for consumption calculations
-    const cropType = await CropType.findOne({ code: crop.toUpperCase() }).lean();
-    const avgConsumption = cropType?.avgConsumptionPerCapita || 0;
-
-    // 3. Calculate metrics on-the-fly
-    const mapData = productionData.map((prodItem) => {
-      const region = level === "district" ? prodItem.district : prodItem.province;
-      const regionCode = level === "district" ? prodItem.districtCode : prodItem.provinceCode;
-      const population = region?.population || 0;
-
-      const production = prodItem.production.value;
-      const consumption = (population * avgConsumption) / 1000; // in tonnes
-
-      const calcResults = Calculations.calculateSurplusDeficit(production, consumption);
-
-      let color = "#10b981"; // Green (Surplus)
-      if (calcResults.status === "deficit") {
-        if (calcResults.severity === "critical") color = "#ef4444"; // Red
-        else if (calcResults.severity === "moderate") color = "#f97316"; // Orange
-        else color = "#eab308"; // Yellow
-      } else if (calcResults.status === "balanced") {
-        color = "#64748b"; // Slate
-      }
-
-      return {
-        regionCode,
-        regionName: region?.name,
-        coordinates: region?.coordinates,
-        geometry: region?.geometry,
-        status: calcResults.status,
-        severity: calcResults.severity,
-        balance: calcResults.balance,
-        production,
-        consumption,
-        color,
-        year: prodItem.year,
-        crop: prodItem.cropCode,
-        isCalculated: true,
-        selfSufficiencyRatio: calcResults.selfSufficiencyRatio
-      };
-    });
-
-    // Store in cache
-    mapDataCache.set(cacheKey, { data: mapData, timestamp: Date.now() });
-
-    return ApiResponse.success(
-      res,
-      mapData,
-      "Surplus/deficit map data calculated successfully"
-    );
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * @desc    Get heatmap data for production intensity
- * @route   GET /api/gis/production-heatmap
- * @access  Public
- */
+// ─── getProductionHeatmap ─────────────────────────────────────────────────────
 export const getProductionHeatmap = async (req, res, next) => {
   try {
     const { year, crop } = req.query;
+    if (!year || !crop) return ApiResponse.error(res, "Year and crop are required", 400);
 
-    if (!year || !crop) {
-      return ApiResponse.error(res, "Year and crop are required", 400);
-    }
-
-    // Get district-level production data for detailed heatmap
-    const productionData = await ProductionData.find({
-      year,
-      cropCode: crop.toUpperCase(),
-      level: "district",
-    })
+    const productionData = await ProductionData.find({ year, cropCode: crop.toUpperCase(), level: "district" })
       .populate("district", "name code coordinates")
       .lean();
 
-    // Calculate production intensity (production per square km)
     const heatmapData = productionData
-      .filter((item) => item.district?.coordinates)
-      .map((item) => ({
-        latitude: item.district.coordinates.latitude,
-        longitude: item.district.coordinates.longitude,
-        intensity: item.production.value, // Can be normalized if needed
+      .filter(item => item.district?.coordinates)
+      .map(item => ({
+        latitude:     item.district.coordinates.latitude,
+        longitude:    item.district.coordinates.longitude,
+        intensity:    item.production.value,
         districtName: item.district.name,
         districtCode: item.districtCode,
-        production: item.production.value,
-        area: item.areaCultivated.value,
+        production:   item.production.value,
+        area:         item.areaCultivated.value,
       }));
 
-    return ApiResponse.success(
-      res,
-      heatmapData,
-      "Production heatmap data retrieved successfully"
-    );
-  } catch (error) {
-    next(error);
-  }
+    return ApiResponse.success(res, heatmapData, "Production heatmap data retrieved successfully");
+  } catch (error) { next(error); }
 };
 
-/**
- * @desc    Get regions within radius (for proximity analysis)
- * @route   GET /api/gis/regions-nearby
- * @access  Public
- */
+// ─── getRegionsNearby ─────────────────────────────────────────────────────────
 export const getRegionsNearby = async (req, res, next) => {
   try {
     const { latitude, longitude, radius = 100, level = "district" } = req.query;
-
-    if (!latitude || !longitude) {
-      return ApiResponse.error(res, "Latitude and longitude are required", 400);
-    }
+    if (!latitude || !longitude) return ApiResponse.error(res, "Latitude and longitude are required", 400);
 
     const lat = parseFloat(latitude);
     const lon = parseFloat(longitude);
     const radiusKm = parseFloat(radius);
-
-    // Simple distance calculation (more accurate with proper geospatial queries)
     const Model = level === "district" ? District : Province;
 
     const regions = await Model.find({ isActive: true })
       .populate(level === "district" ? "province" : "")
       .lean();
 
-    // Calculate distances and filter
     const nearbyRegions = regions
-      .map((region) => {
+      .map(region => {
         if (!region.coordinates) return null;
-
-        // Haversine formula for distance calculation
-        const R = 6371; // Earth's radius in km
-        const dLat = ((region.coordinates.latitude - lat) * Math.PI) / 180;
-        const dLon = ((region.coordinates.longitude - lon) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos((lat * Math.PI) / 180) *
-          Math.cos((region.coordinates.latitude * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distance = R * c;
-
-        return {
-          ...region,
-          distance: Math.round(distance * 10) / 10, // Round to 1 decimal
-        };
+        const dist = haversineDistance(
+          [lon, lat],
+          [region.coordinates.longitude, region.coordinates.latitude]
+        );
+        return { ...region, distance: Math.round(dist * 10) / 10 };
       })
-      .filter((region) => region && region.distance <= radiusKm)
+      .filter(r => r && r.distance <= radiusKm)
       .sort((a, b) => a.distance - b.distance);
 
-    return ApiResponse.success(
-      res,
-      nearbyRegions,
-      `Found ${nearbyRegions.length} regions within ${radiusKm}km`
-    );
-  } catch (error) {
-    next(error);
-  }
+    return ApiResponse.success(res, nearbyRegions, `Found ${nearbyRegions.length} regions within ${radiusKm}km`);
+  } catch (error) { next(error); }
 };
 
-/**
- * @desc    Get GeoJSON for provinces
- * @route   GET /api/gis/geojson/provinces
- * @access  Public
- */
+// ─── getProvincesGeoJSON ──────────────────────────────────────────────────────
 export const getProvincesGeoJSON = async (req, res, next) => {
   try {
     const provinces = await Province.find({ isActive: true })
       .select("code name geometry coordinates population area")
       .lean();
 
-    // Format as GeoJSON FeatureCollection
     const geoJSON = {
       type: "FeatureCollection",
-      features: provinces.map((province) => ({
+      features: provinces.map(p => ({
         type: "Feature",
-        properties: {
-          code: province.code,
-          name: province.name,
-          population: province.population,
-          area: province.area,
-        },
-        geometry: province.geometry || {
+        properties: { code: p.code, name: p.name, population: p.population, area: p.area },
+        geometry: p.geometry || {
           type: "Point",
-          coordinates: [
-            province.coordinates.longitude,
-            province.coordinates.latitude,
-          ],
+          coordinates: [p.coordinates.longitude, p.coordinates.latitude],
         },
       })),
     };
 
-    return ApiResponse.success(
-      res,
-      geoJSON,
-      "Provinces GeoJSON retrieved successfully"
-    );
-  } catch (error) {
-    next(error);
-  }
+    return ApiResponse.success(res, geoJSON, "Provinces GeoJSON retrieved successfully");
+  } catch (error) { next(error); }
 };
 
-/**
- * @desc    Get GeoJSON for districts
- * @route   GET /api/gis/geojson/districts
- * @access  Public
- */
+// ─── getDistrictsGeoJSON ──────────────────────────────────────────────────────
 export const getDistrictsGeoJSON = async (req, res, next) => {
   try {
     const { province } = req.query;
-
-    // Check cache
-    const cacheKey = `geojson-districts-${province || 'all'}`;
+    const cacheKey = `geojson-districts-${province || "all"}`;
     const cached = geoJsonCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < GEOJSON_CACHE_TTL) {
+    if (cached && Date.now() - cached.timestamp < GEOJSON_TTL) {
       return ApiResponse.success(res, cached.data, "Districts GeoJSON retrieved from cache");
     }
 
@@ -646,64 +619,39 @@ export const getDistrictsGeoJSON = async (req, res, next) => {
     if (province) query.provinceCode = province.toUpperCase();
 
     const districts = await District.find(query)
-      .select(
-        "code name provinceCode geometry coordinates population area agriculturalZone"
-      )
+      .select("code name provinceCode geometry coordinates population area agriculturalZone")
       .lean();
 
-    // Format as GeoJSON FeatureCollection
     const geoJSON = {
       type: "FeatureCollection",
-      features: districts.map((district) => ({
+      features: districts.map(d => ({
         type: "Feature",
         properties: {
-          code: district.code,
-          name: district.name,
-          provinceCode: district.provinceCode,
-          population: district.population,
-          area: district.area,
-          agriculturalZone: district.agriculturalZone,
+          code:             d.code,
+          name:             d.name,
+          provinceCode:     d.provinceCode,
+          population:       d.population,
+          area:             d.area,
+          agriculturalZone: d.agriculturalZone,
         },
-        geometry: district.geometry || {
+        geometry: d.geometry || {
           type: "Point",
-          coordinates: [
-            district.coordinates.longitude,
-            district.coordinates.latitude,
-          ],
+          coordinates: [d.coordinates.longitude, d.coordinates.latitude],
         },
       })),
     };
 
-    // Store in cache
     geoJsonCache.set(cacheKey, { data: geoJSON, timestamp: Date.now() });
-
-    return ApiResponse.success(
-      res,
-      geoJSON,
-      "Districts GeoJSON retrieved successfully"
-    );
-  } catch (error) {
-    next(error);
-  }
+    return ApiResponse.success(res, geoJSON, "Districts GeoJSON retrieved successfully");
+  } catch (error) { next(error); }
 };
 
-/**
- * @desc    Get suggested route between surplus and deficit regions
- * @route   GET /api/gis/routes
- * @access  Public
- */
+// ─── getRoute ─────────────────────────────────────────────────────────────────
 export const getRoute = async (req, res, next) => {
   try {
     const { surplusId, deficitId } = req.query;
-    if (!surplusId || !deficitId) {
-      return ApiResponse.error(res, "SurplusId and DeficitId required", 400);
-    }
-
+    if (!surplusId || !deficitId) return ApiResponse.error(res, "SurplusId and DeficitId required", 400);
     const routeData = await LogisticsService.suggestTransport(surplusId, deficitId);
-
     return ApiResponse.success(res, routeData, "Route calculated successfully");
-
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 };

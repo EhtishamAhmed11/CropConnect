@@ -84,6 +84,23 @@ const setupScheduler = () => {
             console.error("[Scheduler] Toll threshold check failed:", error);
         }
     });
+
+    // 5. MNFSR District Data: 1st of every month at 3am
+    // Checks mnfsr.gov.pk for a new "Crops Area and Production District Wise" PDF.
+    // If a newer PDF is found, downloads it, runs extract_mnfsr.py, and upserts MongoDB.
+    cron.schedule("0 3 1 * *", async () => {
+        console.log("[Scheduler] Running monthly MNFSR district data check...");
+        try {
+            // Dynamic import because mnfsr.updater.js is CommonJS (require-based)
+            const { createRequire } = await import("module");
+            const require = createRequire(import.meta.url);
+            const { runUpdate } = require("../../mnfsr.updater.js");
+            await runUpdate();
+            console.log("[Scheduler] MNFSR update complete.");
+        } catch (error) {
+            console.error("[Scheduler] MNFSR update failed:", error.message);
+        }
+    });
 };
 
 export default setupScheduler;
