@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import { priceThresholdAPI } from "../../api/priceThresholdAPI";
 import { productionAPI } from "../../api/productionAPI";
-import { gisAPI } from "../../api/gisApi";
+import { gisAPI } from "../../api/gisAPI";
 import { useAlert } from "../../context/AlertContext";
 import { ArrowLeft, Save, DollarSign } from "lucide-react";
 
