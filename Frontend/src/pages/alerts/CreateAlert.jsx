@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { alertAPI } from "../../api/alertAPI";
-import { gisAPI } from "../../api/gisApi";
+import { gisAPI } from "../../api/gisAPI";
 import { adminAPI } from "../../api/adminAPI";
 import { useAlert } from "../../context/AlertContext";
 import Layout from "../../components/layout/Layout";

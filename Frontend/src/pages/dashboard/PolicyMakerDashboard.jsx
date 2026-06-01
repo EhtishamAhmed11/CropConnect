@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { productionAPI } from "../../api/productionAPI";
 import { surplusDeficitAPI } from "../../api/surplusDeficitAPI";
 import { alertAPI } from "../../api/alertAPI";
-import { gisAPI } from "../../api/gisApi";
+import { gisAPI } from "../../api/gisAPI";
 import { useAlert } from "../../context/AlertContext";
 import Layout from "../../components/layout/Layout";
 import Loading from "../../components/common/Loading";
