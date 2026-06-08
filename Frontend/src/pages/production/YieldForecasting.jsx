@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAlert } from "../../context/AlertContext";
 import Layout from "../../components/layout/Layout";
 import Loading from "../../components/common/Loading";
-import axios from "axios";
 import { getTimelineData, getRegionalComparison } from "../../api/predictionAPI";
+import { weatherAPI } from "../../api/weatherApi";
 import {
     LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, Legend, Cell,
@@ -13,7 +13,6 @@ import {
     Target, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 
-const WEATHER_API = import.meta.env.WEATHER_API_KEY 
 const CROPS = [{ value: "Wheat", label: "Wheat 🌾" }, { value: "Rice", label: "Rice 🍚" }, { value: "Cotton", label: "Cotton 🌱" }];
 const REGIONS = [
     { value: "Pakistan", label: "Pakistan (National)" },
@@ -75,7 +74,7 @@ const YieldForecasting = () => {
 
     const fetchWeather = async () => {
         try {
-            const r = await axios.get(`${WEATHER_API}/weather/district/lahore`);
+            const r = await weatherAPI.getDistrictWeather("lahore");
             if (r.data?.success) setWeatherData(r.data.data);
         } catch { /* optional */ }
     };
