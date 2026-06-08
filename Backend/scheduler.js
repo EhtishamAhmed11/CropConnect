@@ -3,6 +3,10 @@ import * as WeatherService from "./services/weather.service.js";
 import * as EmailService from "./services/email.service.js";
 import * as PriceMonitorService from "./services/priceMonitor.service.js";
 import * as TollMonitorService from "./services/tollMonitor.service.js";
+// ── NEW ──
+import { runMarketScraper } from "./services/marketScraper.service.js";
+import { runMarketForecasts } from "./services/marketForecast.service.js";
+// ────────
 import Alert from "./models/alerts.model.js";
 import MarketPrice from "./models/marketPrice.model.js";
 import User from "./models/user.model.js";
@@ -22,7 +26,7 @@ const setupScheduler = () => {
         }
     });
 
-    // 1. Weather Update: Every 4 hours (0 */4 * * *)
+    // 1. Weather Update: Every 4 hours
     cron.schedule("0 */4 * * *", async () => {
         console.log("[Scheduler] Starting periodic weather update...");
         try {
@@ -33,11 +37,10 @@ const setupScheduler = () => {
         }
     });
 
-    // 2. Daily Report: Every day at 8:00 AM (0 8 * * *)
+    // 2. Daily Report: Every day at 8:00 AM
     cron.schedule("0 8 * * *", async () => {
         console.log("[Scheduler] Generating daily reports...");
         try {
-            // Gather Data
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
@@ -46,18 +49,14 @@ const setupScheduler = () => {
 
             const reportData = {
                 alertsCount,
-                wheatPrice: latestWheat?.price
+                wheatPrice: latestWheat?.price,
             };
 
-            // Find users subscribed to reports (Mocking 'role' based targeting)
-            // In real app, check user.preferences.receiveEmails
-            const users = await User.find({ "email": { $exists: true } }).limit(5);
-
+            const users = await User.find({ email: { $exists: true } }).limit(5);
             for (const user of users) {
                 await EmailService.sendDailyReport(user.email, reportData);
             }
             console.log(`[Scheduler] Sent daily reports to ${users.length} users.`);
-
         } catch (error) {
             console.error("[Scheduler] Daily report failed:", error);
         }
@@ -74,7 +73,7 @@ const setupScheduler = () => {
         }
     });
 
-    // 4. Toll Threshold Monitoring: Every 6 hours (toll rates change less frequently)
+    // 4. Toll Threshold Monitoring: Every 6 hours
     cron.schedule("0 */6 * * *", async () => {
         console.log("[Scheduler] Checking toll thresholds...");
         try {
@@ -86,12 +85,9 @@ const setupScheduler = () => {
     });
 
     // 5. MNFSR District Data: 1st of every month at 3am
-    // Checks mnfsr.gov.pk for a new "Crops Area and Production District Wise" PDF.
-    // If a newer PDF is found, downloads it, runs extract_mnfsr.py, and upserts MongoDB.
     cron.schedule("0 3 1 * *", async () => {
         console.log("[Scheduler] Running monthly MNFSR district data check...");
         try {
-            // Dynamic import because mnfsr.updater.js is CommonJS (require-based)
             const { createRequire } = await import("module");
             const require = createRequire(import.meta.url);
             const { runUpdate } = require("../../mnfsr.updater.js");
@@ -101,7 +97,48 @@ const setupScheduler = () => {
             console.error("[Scheduler] MNFSR update failed:", error.message);
         }
     });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 6. ── NEW ── Market Price Scraper: Every day at 6:00 AM
+    //    Scrapes wheat, rice, cotton mandi prices from kissan.pk.
+    //    Runs before the 8AM report so reports reflect today's prices.
+    //    Falls back to government MSP if the site is unreachable.
+    // ─────────────────────────────────────────────────────────────────────────
+    cron.schedule("0 6 * * *", async () => {
+        console.log("[Scheduler] Starting daily market price scrape...");
+        try {
+            const result = await runMarketScraper();
+            console.log(
+                `[Scheduler] Market scrape complete. ` +
+                `Saved: ${result.saved}, Skipped: ${result.skipped}` +
+                `${result.usedFallback ? " [used MSP fallback]" : ""}`
+            );
+        } catch (error) {
+            console.error("[Scheduler] Market scrape failed:", error);
+        }
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 7. ── NEW ── Market Price Forecast: Every day at 6:30 AM
+    //    Runs 30 minutes after the scraper so fresh prices are available.
+    //    Generates 10/20/30-day forecasts per crop × district using:
+    //      - 7-day moving average as base price
+    //      - Seasonal factor (harvest/lean cycle per crop)
+    //      - Weather factor (heat/flood stress from your weather module)
+    //      - Supply factor (surplus/deficit status from your SD module)
+    // ─────────────────────────────────────────────────────────────────────────
+    cron.schedule("30 6 * * *", async () => {
+        console.log("[Scheduler] Starting daily market forecast generation...");
+        try {
+            const result = await runMarketForecasts();
+            console.log(
+                `[Scheduler] Market forecasts complete. ` +
+                `Generated: ${result.generated}, Skipped: ${result.skipped}`
+            );
+        } catch (error) {
+            console.error("[Scheduler] Market forecast generation failed:", error);
+        }
+    });
 };
 
 export default setupScheduler;
-
