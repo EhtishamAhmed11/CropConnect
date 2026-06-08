@@ -12,4 +12,12 @@ export const marketAPI = {
     },
     getHighlights: () => api.get('/market/highlights'),
     addPrice: (data) => api.post('/market/prices', data),
+    getForecast: (cropId, districtId) => {
+        return api.get(`/market/forecast`, {
+            params: { cropId, districtId }
+        });
+    },
+    getDistrictForecasts: (districtId) => {
+        return api.get(`/market/forecast/district/${districtId}`);
+    },
 };

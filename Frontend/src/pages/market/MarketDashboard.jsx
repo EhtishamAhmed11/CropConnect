@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import LatestPricesTable from '../../components/market/LatestPricesTable';
 import PriceTrendChart from '../../components/market/PriceTrendChart';
+import PriceForecastCard from '../../components/market/PriceForecastCard';
 import { marketAPI } from '../../api/marketApi';
 import { gisAPI } from '../../api/gisAPI';
 import {
@@ -155,7 +156,7 @@ const MarketDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Sidebar: Chart */}
+                    {/* Sidebar: Chart & Forecast */}
                     <div className="space-y-6">
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
                             <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -169,6 +170,12 @@ const MarketDashboard = () => {
                                 />
                             </div>
                         </div>
+                        <PriceForecastCard
+                            cropId={selectedTrend.cropId}
+                            districtId={selectedTrend.districtId}
+                            cropName={selectedTrend.cropName}
+                            districtName={selectedTrend.districtName}
+                        />
                     </div>
                 </div>
             </div>

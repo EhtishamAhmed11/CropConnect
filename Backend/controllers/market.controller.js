@@ -4,6 +4,7 @@ import CropType from "../models/cropType.model.js";
 import District from "../models/district.model.js";
 import cache from "../services/cache.service.js";
 import ApiResponse from "../utils/apiResponse.js";
+import { getForecastForCropDistrict, getAllForecastsForDistrict } from "../services/marketForecast.service.js";
 
 // @desc    Get latest market prices for all crops (optionally filtered by district)
 // @route   GET /api/market/prices/latest
@@ -272,6 +273,85 @@ export const getMarketHighlights = async (req, res, next) => {
         cache.set(cacheKey, result);
 
         return ApiResponse.success(res, result, "Market highlights retrieved successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+// @desc    Get price forecast for a specific crop + district
+// @route   GET /api/market/forecast?cropId=...&districtId=...
+// @access  Public
+// @returns basePrice, 10/20/30-day forecasts with confidence bands,
+//          factor breakdown (seasonal/weather/supply), trend, summary
+export const getPriceForecast = async (req, res, next) => {
+    try {
+        const { cropId, districtId } = req.query;
+
+        if (!cropId || !districtId) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide cropId and districtId",
+            });
+        }
+
+        // Cache per crop+district pair (1 hour — forecasts are generated daily)
+        const cacheKey = cache.generateKey("market_forecast", { cropId, districtId });
+        const cached = cache.get(cacheKey);
+        if (cached) {
+            return ApiResponse.success(res, cached, "Price forecast retrieved from cache");
+        }
+
+        const forecast = await getForecastForCropDistrict(cropId, districtId);
+
+        if (!forecast) {
+            return res.status(404).json({
+                success: false,
+                message: "No forecast available yet. Forecasts are generated daily at 6:30 AM.",
+            });
+        }
+
+        cache.set(cacheKey, forecast, 3600); // cache for 1 hour
+        return ApiResponse.success(res, forecast, "Price forecast retrieved successfully");
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get price forecasts for all crops in a district
+// @route   GET /api/market/forecast/district/:districtId
+// @access  Public
+// @returns Array of forecasts for Wheat, Rice, Cotton in the given district
+export const getDistrictForecasts = async (req, res, next) => {
+    try {
+        const { districtId } = req.params;
+
+        const cacheKey = cache.generateKey("market_forecast_district", { districtId });
+        const cached = cache.get(cacheKey);
+        if (cached) {
+            return ApiResponse.success(res, cached, "District forecasts retrieved from cache");
+        }
+
+        const forecasts = await getAllForecastsForDistrict(districtId);
+
+        if (!forecasts.length) {
+            return res.status(404).json({
+                success: false,
+                message: "No forecasts available for this district yet.",
+            });
+        }
+
+        // Deduplicate — keep only the latest forecast per crop
+        const seen = new Set();
+        const latest = forecasts.filter(f => {
+            const key = f.cropType._id.toString();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        cache.set(cacheKey, latest, 3600);
+        return ApiResponse.success(res, latest, "District price forecasts retrieved successfully");
     } catch (error) {
         next(error);
     }
