@@ -12,7 +12,7 @@ import {
     Target, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API = import.meta.env.CROPCONNECT_API_URL || "http://localhost:3000/api";
 
 const CROPS   = [{ value: "Wheat", label: "Wheat 🌾" }, { value: "Rice", label: "Rice 🍚" }, { value: "Cotton", label: "Cotton 🌱" }];
 const REGIONS = [
