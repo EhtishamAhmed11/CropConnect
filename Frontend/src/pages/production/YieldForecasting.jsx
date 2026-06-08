@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAlert } from "../../context/AlertContext";
 import Layout from "../../components/layout/Layout";
 import Loading from "../../components/common/Loading";
-import axios from "axios";
+import { getTimelineData, getRegionalComparison } from "../../api/predictionAPI";
+import { weatherAPI } from "../../api/weatherApi";
 import {
     LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, Legend, Cell,
@@ -12,9 +13,7 @@ import {
     Target, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 
-const API = import.meta.env.CROPCONNECT_API_URL || "http://localhost:3000/api";
-
-const CROPS   = [{ value: "Wheat", label: "Wheat 🌾" }, { value: "Rice", label: "Rice 🍚" }, { value: "Cotton", label: "Cotton 🌱" }];
+const CROPS = [{ value: "Wheat", label: "Wheat 🌾" }, { value: "Rice", label: "Rice 🍚" }, { value: "Cotton", label: "Cotton 🌱" }];
 const REGIONS = [
     { value: "Pakistan", label: "Pakistan (National)" },
     { value: "Punjab", label: "Punjab" },
@@ -44,10 +43,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 // ── Main Component ────────────────────────────────────────────────────────────
 const YieldForecasting = () => {
     const { showError } = useAlert();
-    const [loading, setLoading]             = useState(false);
-    const [timelineData, setTimelineData]   = useState(null);
-    const [regionalData, setRegionalData]   = useState([]);
-    const [weatherData, setWeatherData]     = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [timelineData, setTimelineData] = useState(null);
+    const [regionalData, setRegionalData] = useState([]);
+    const [weatherData, setWeatherData] = useState(null);
     const [multiCropData, setMultiCropData] = useState({});
     const [multiCropMode, setMultiCropMode] = useState(false);
     const [filters, setFilters] = useState({ crop: "Wheat", region: "Pakistan", forecastYear: 2028 });
@@ -60,22 +59,22 @@ const YieldForecasting = () => {
     const fetchTimeline = async () => {
         setLoading(true);
         try {
-            const r = await axios.get(`${API}/predictions/timeline`, { params: { crop: filters.crop, region: filters.region } });
-            setTimelineData(r.data.data);
+            const result = await getTimelineData(filters.crop, filters.region);
+            setTimelineData(result.data);
         } catch { showError("Failed to load forecast data"); }
         finally { setLoading(false); }
     };
 
     const fetchRegional = async () => {
         try {
-            const r = await axios.get(`${API}/predictions/regional-comparison`, { params: { crop: filters.crop, year: filters.forecastYear } });
-            setRegionalData(r.data.data || []);
+            const result = await getRegionalComparison(filters.crop, filters.forecastYear);
+            setRegionalData(result.data || []);
         } catch { console.warn("Regional data unavailable"); }
     };
 
     const fetchWeather = async () => {
         try {
-            const r = await axios.get(`${API}/weather/district/lahore`);
+            const r = await weatherAPI.getDistrictWeather("lahore");
             if (r.data?.success) setWeatherData(r.data.data);
         } catch { /* optional */ }
     };
@@ -84,8 +83,8 @@ const YieldForecasting = () => {
         const out = {};
         for (const c of CROPS) {
             try {
-                const r = await axios.get(`${API}/predictions/timeline`, { params: { crop: c.value, region: filters.region } });
-                out[c.value] = r.data.data;
+                const result = await getTimelineData(c.value, filters.region);
+                out[c.value] = result.data;
             } catch { /* skip */ }
         }
         setMultiCropData(out);
@@ -178,12 +177,12 @@ const YieldForecasting = () => {
         const list = [];
         if (weatherData) {
             if (weatherData.temperature > 35) list.push({ icon: <Sun size={15} className="text-orange-500" />, title: "Heat Stress Alert", msg: `${Math.round(weatherData.temperature)}°C — may reduce ${filters.crop} yield.`, type: "warning" });
-            if (weatherData.rainfall > 50)    list.push({ icon: <Droplets size={15} className="text-blue-500" />, title: "Heavy Rainfall", msg: `${weatherData.rainfall}mm — potential crop damage risk.`, type: "warning" });
-            if (weatherData.humidity > 80)    list.push({ icon: <Cloud size={15} className="text-teal-500" />, title: "High Humidity", msg: `${weatherData.humidity}% — fungal disease risk elevated.`, type: "info" });
+            if (weatherData.rainfall > 50) list.push({ icon: <Droplets size={15} className="text-blue-500" />, title: "Heavy Rainfall", msg: `${weatherData.rainfall}mm — potential crop damage risk.`, type: "warning" });
+            if (weatherData.humidity > 80) list.push({ icon: <Cloud size={15} className="text-teal-500" />, title: "High Humidity", msg: `${weatherData.humidity}% — fungal disease risk elevated.`, type: "info" });
         }
         const c = filters.crop.toLowerCase();
-        if (c === "wheat")  list.push({ icon: <Target size={15} className="text-indigo-500" />, title: "Wheat Strategy", msg: "Focus on improved seed varieties and balanced fertilization.", type: "strategy" });
-        if (c === "rice")   list.push({ icon: <Target size={15} className="text-indigo-500" />, title: "Rice Strategy", msg: "Drip irrigation adoption can boost yields 15–20%.", type: "strategy" });
+        if (c === "wheat") list.push({ icon: <Target size={15} className="text-indigo-500" />, title: "Wheat Strategy", msg: "Focus on improved seed varieties and balanced fertilization.", type: "strategy" });
+        if (c === "rice") list.push({ icon: <Target size={15} className="text-indigo-500" />, title: "Rice Strategy", msg: "Drip irrigation adoption can boost yields 15–20%.", type: "strategy" });
         if (c === "cotton") list.push({ icon: <Target size={15} className="text-indigo-500" />, title: "Cotton Strategy", msg: "Integrated pest management is critical for yield protection.", type: "strategy" });
         return list;
     }, [weatherData, filters.crop]);
@@ -209,7 +208,7 @@ const YieldForecasting = () => {
 
                         <div className="flex flex-wrap items-end gap-4">
                             {[
-                                { name: "crop",   label: "Crop",   opts: CROPS },
+                                { name: "crop", label: "Crop", opts: CROPS },
                                 { name: "region", label: "Region", opts: REGIONS },
                             ].map(({ name, label, opts }) => (
                                 <div key={name} className="flex flex-col gap-1">
