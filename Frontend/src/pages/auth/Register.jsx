@@ -36,10 +36,23 @@ const Register = () => {
       showSuccess("Registration successful!");
       navigate("/dashboard");
     } catch (error) {
-      showError(error.response?.data?.message || "Registration failed");
+      const apiErrors = error.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        showError(`${error.response.data.message}: ${apiErrors.join(". ")}`);
+      } else {
+        showError(error.response?.data?.message || "Registration failed");
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const password = formData.password || "";
+  const checks = {
+    length: password.length >= 8,
+    lowercase: /(?=.*[a-z])/.test(password),
+    uppercase: /(?=.*[A-Z])/.test(password),
+    number: /(?=.*\d)/.test(password),
   };
 
   return (
@@ -141,6 +154,26 @@ const Register = () => {
                 placeholder="••••••••"
                 required
               />
+              {formData.password && (
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-500 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 transition-all duration-300">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${checks.length ? 'bg-emerald-500 ring-4 ring-emerald-500/20' : 'bg-slate-300'}`} />
+                    <span className={checks.length ? 'text-emerald-600 font-semibold' : 'text-slate-500'}>8+ characters</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${checks.lowercase ? 'bg-emerald-500 ring-4 ring-emerald-500/20' : 'bg-slate-300'}`} />
+                    <span className={checks.lowercase ? 'text-emerald-600 font-semibold' : 'text-slate-500'}>Lowercase letter</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${checks.uppercase ? 'bg-emerald-500 ring-4 ring-emerald-500/20' : 'bg-slate-300'}`} />
+                    <span className={checks.uppercase ? 'text-emerald-600 font-semibold' : 'text-slate-500'}>Uppercase letter</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${checks.number ? 'bg-emerald-500 ring-4 ring-emerald-500/20' : 'bg-slate-300'}`} />
+                    <span className={checks.number ? 'text-emerald-600 font-semibold' : 'text-slate-500'}>At least one number</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
